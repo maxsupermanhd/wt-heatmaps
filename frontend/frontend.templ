@@ -35,7 +35,7 @@ templ Index(availableMaps []string) {
 			<svg id="mapview" width="100%" height="100%">
 				<style>
 					#tankmap {
-						filter: brightness(15%)
+						filter: brightness(35%)
 					}
 				</style>
 				<image id="tankmap"></image>
@@ -58,7 +58,7 @@ templ Index(availableMaps []string) {
 				</p>
 				<p>
 					<label for="brightness">Map brightness:</label>
-					<input id="tankmapBrightnessSlider" name="brightness" type="range" min="0" max="100"/>
+					<input id="tankmapBrightnessSlider" name="brightness" type="range" min="0" max="100" value="35"/>
 				</p>
 			</form>
 			<div id="offsetsDisplay"></div>
