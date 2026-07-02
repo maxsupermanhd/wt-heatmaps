@@ -74,7 +74,7 @@ func Index(availableMaps []string) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(15%)\n\t\t\t\t\t}\n\t\t\t\t</style><image id=\"tankmap\"></image> <g id=\"heat\"></g></svg></div><div id=\"settingsDiv\" class=\"settings\"><form hx-swap=\"none\" hx-get=\"/frontend/mapUpdate\"><div style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(15%)\n\t\t\t\t\t}\n\t\t\t\t</style><image id=\"tankmap\"></image> <g id=\"heat\"></g></svg></div><div id=\"settingsDiv\" class=\"settings\"><form hx-swap=\"none\" hx-get=\"/frontend/mapUpdate\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -97,7 +97,7 @@ func Index(availableMaps []string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</select></div><button type=\"submit\">Load</button></form><div id=\"offsetsDisplay\"></div><div id=\"msgDisplay\"></div></div></div><script type=\"module\" src=\"/static/main.js\"></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</select></p><p><button type=\"submit\">Load</button></p><p><label for=\"brightness\">Map brightness:</label> <input id=\"tankmapBrightnessSlider\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\"></p></form><div id=\"offsetsDisplay\"></div><div id=\"msgDisplay\"></div></div></div><script type=\"module\" src=\"/static/main.js\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -133,7 +133,7 @@ func MapUpdateError(err error) templ.Component {
 		var templ_7745c5c3_Var5 string
 		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(err.Error())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 67, Col: 15}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 73, Col: 15}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 		if templ_7745c5c3_Err != nil {
@@ -182,7 +182,7 @@ func MapUpdate(params MapUpdateParams) templ.Component {
 		var templ_7745c5c3_Var7 string
 		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.JoinStringErrs("/minimap/" + params.Level)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 81, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 87, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var7))
 		if templ_7745c5c3_Err != nil {
@@ -195,7 +195,7 @@ func MapUpdate(params MapUpdateParams) templ.Component {
 		var templ_7745c5c3_Var8 string
 		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs("/heat?" + url.Values(map[string][]string{"level": []string{params.Level}}).Encode())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 82, Col: 130}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 88, Col: 130}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 		if templ_7745c5c3_Err != nil {
@@ -208,7 +208,7 @@ func MapUpdate(params MapUpdateParams) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(spew.Sdump(params.Offsets))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 86, Col: 35}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 92, Col: 35}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 		if templ_7745c5c3_Err != nil {
@@ -221,7 +221,7 @@ func MapUpdate(params MapUpdateParams) templ.Component {
 		var templ_7745c5c3_Var10 string
 		templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.JoinStringErrs(params.Msg)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 89, Col: 14}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 95, Col: 14}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var10))
 		if templ_7745c5c3_Err != nil {

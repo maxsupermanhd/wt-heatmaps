@@ -50,3 +50,13 @@ svg.addEventListener("dblclick", () => {
 function setViewBox() {
 	svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
 }
+
+document.getElementById("tankmapBrightnessSlider").oninput = (e) => {
+	for (let v of document.styleSheets) {
+		for (let v2 of v.cssRules) {
+			if (v2.selectorText == "#tankmap") {
+				v2.style.filter = `brightness(${e.target.value}%)`;
+			}
+		}
+	}
+};

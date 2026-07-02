@@ -44,7 +44,7 @@ templ Index(availableMaps []string) {
 		</div>
 		<div id="settingsDiv" class="settings">
 			<form hx-swap="none" hx-get="/frontend/mapUpdate">
-				<div style="white-space: nowrap">
+				<p style="white-space: nowrap">
 					<label for="level">Map:</label>
 					<select name="level">
 						<option selected></option>
@@ -52,8 +52,14 @@ templ Index(availableMaps []string) {
 							<option>{ v }</option>
 						}
 					</select>
-				</div>
-				<button type="submit">Load</button>
+				</p>
+				<p>
+					<button type="submit">Load</button>
+				</p>
+				<p>
+					<label for="brightness">Map brightness:</label>
+					<input id="tankmapBrightnessSlider" name="brightness" type="range" min="0" max="100"/>
+				</p>
 			</form>
 			<div id="offsetsDisplay"></div>
 			<div id="msgDisplay"></div>
