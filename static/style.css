@@ -39,11 +39,12 @@ body {
 	min-width: 200px;
 }
 
-select {
+select,
+button {
 	background-color: #111;
 	border-radius: 0.5rem;
 	border: 1px solid #555;
-	padding: 0.25rem 0.25rem 0.25rem 0.8rem;
+	padding: 0.25rem 0.25rem 0.25rem 0.25rem;
 	color: #ddd;
 	font: inherit;
 }
