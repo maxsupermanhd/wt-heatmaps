@@ -8,8 +8,10 @@ import (
 	"main/frontend"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
+	"maps"
 	"math"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/a-h/templ"
@@ -45,6 +47,9 @@ func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Compon
 	perf := time.Now()
 	q := r.URL.Query()
 	level := q.Get("level")
+	if !slices.Contains(slices.Collect(maps.Values(ks.GetDictLevels())), level) {
+		return nil
+	}
 	levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
 	if err != nil {
 		return frontend.MapUpdateError(err)
@@ -107,7 +112,10 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 
 func compRender(f func(w http.ResponseWriter, r *http.Request) templ.Component) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		f(w, r).Render(r.Context(), w)
+		c := f(w, r)
+		if c != nil {
+			c.Render(r.Context(), w)
+		}
 	}
 }
 
