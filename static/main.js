@@ -60,3 +60,16 @@ document.getElementById("tankmapBrightnessSlider").oninput = (e) => {
 		}
 	}
 };
+
+const form = document.querySelector("#settingsForm");
+
+form.addEventListener("submit", (e) => {
+	e.preventDefault();
+	let f = new FormData(settingsForm);
+	document
+		.getElementById("heat")
+		.setAttribute("href", "/heat?" + new URLSearchParams(f).toString());
+	document
+		.getElementById("tankmap")
+		.setAttribute("href", "/minimap/" + f.get("level"));
+});

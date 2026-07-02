@@ -1,9 +1,6 @@
 package frontend
 
-import (
-	"net/url"
-	"slices"
-)
+import "slices"
 
 templ Page(content templ.Component) {
 	<!DOCTYPE html>
@@ -36,11 +33,11 @@ templ Index(availableMaps []string) {
 					}
 				</style>
 				<image id="tankmap"></image>
-				<g id="heat"></g>
+				<image id="heat"></image>
 			</svg>
 		</div>
 		<div id="settingsDiv" class="settings">
-			<form hx-swap="none" hx-get="/frontend/mapUpdate">
+			<form id="settingsForm">
 				<p style="white-space: nowrap">
 					<label for="level">Map:</label>
 					<select name="level">
@@ -73,28 +70,28 @@ templ Index(availableMaps []string) {
 	<script type="module" src="/static/main.js"></script>
 }
 
-templ MapUpdateError(err error) {
-	<div hx-swap-oob="true" id="msgDisplay">
-		{ err.Error() }
-	</div>
-}
+// templ MapUpdateError(err error) {
+// 	<div hx-swap-oob="true" id="msgDisplay">
+// 		{ err.Error() }
+// 	</div>
+// }
 
-type MapUpdateParams struct {
-	Level      string
-	HeatParams url.Values
-}
+// type MapUpdateParams struct {
+// 	Level      string
+// 	HeatParams url.Values
+// }
 
-templ MapUpdate(params MapUpdateParams) {
-	<template>
-		<svg>
-			<image hx-swap-oob="true" id="tankmap" href={ "/minimap/" + params.Level }></image>
-			<image hx-swap-oob="true" id="heat" href={ "/heat?" + params.HeatParams.Encode() }></image>
-		</svg>
-	</template>
-	// <div hx-swap-oob="true" id="offsetsDisplay">
-	// 	<pre>{ spew.Sdump(params.Offsets) }</pre>
-	// </div>
-	// <div hx-swap-oob="true" id="msgDisplay">
-	// 	{ params.Msg }
-	// </div>
-}
+// templ MapUpdate(params MapUpdateParams) {
+// 	<template>
+// 		<svg>
+// 			<image hx-swap-oob="true" id="tankmap" href={ "/minimap/" + params.Level }></image>
+// 			<image hx-swap-oob="true" id="heat" href={ "/heat?" + params.HeatParams.Encode() }></image>
+// 		</svg>
+// 	</template>
+// 	// <div hx-swap-oob="true" id="offsetsDisplay">
+// 	// 	<pre>{ spew.Sdump(params.Offsets) }</pre>
+// 	// </div>
+// 	// <div hx-swap-oob="true" id="msgDisplay">
+// 	// 	{ params.Msg }
+// 	// </div>
+// }

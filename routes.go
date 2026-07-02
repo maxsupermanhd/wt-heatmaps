@@ -7,10 +7,8 @@ import (
 	"main/frontend"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
-	"maps"
 	"math"
 	"net/http"
-	"slices"
 	"strconv"
 	"time"
 
@@ -26,7 +24,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 
 	mux.HandleFunc("GET /minimap/{k...}", httpLog(serveCachedMinimaps))
 	mux.HandleFunc("GET /heat", httpLog(serveHeat))
-	mux.HandleFunc("GET /frontend/mapUpdate", httpLog(compRender(serveFrontendMapUpdate)))
+	// mux.HandleFunc("GET /frontend/mapUpdate", httpLog(compRender(serveFrontendMapUpdate)))
 	// mux.HandleFunc("GET /ws/frontend", httpLog(websocket.Server{
 	// 	Handler: handleWsFrontend,
 	// }.ServeHTTP))
@@ -43,24 +41,24 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 	return frontend.Page(frontend.Index(levels))
 }
 
-func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Component {
-	// perf := time.Now()
-	q := r.URL.Query()
-	level := q.Get("level")
-	if !slices.Contains(slices.Collect(maps.Values(ks.GetDictLevels())), level) {
-		return nil
-	}
-	// levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
-	// if err != nil {
-	// 	return frontend.MapUpdateError(err)
-	// }
-	return frontend.MapUpdate(frontend.MapUpdateParams{
-		Level:      level,
-		HeatParams: q,
-		// Offsets: levelOffsets,
-		// Msg:     fmt.Sprintf("Took: %s", time.Since(perf).String()),
-	})
-}
+// func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Component {
+// 	// perf := time.Now()
+// 	q := r.URL.Query()
+// 	level := q.Get("level")
+// 	if !slices.Contains(slices.Collect(maps.Values(ks.GetDictLevels())), level) {
+// 		return nil
+// 	}
+// 	// levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
+// 	// if err != nil {
+// 	// 	return frontend.MapUpdateError(err)
+// 	// }
+// 	return frontend.MapUpdate(frontend.MapUpdateParams{
+// 		Level:      level,
+// 		HeatParams: q,
+// 		// Offsets: levelOffsets,
+// 		// Msg:     fmt.Sprintf("Took: %s", time.Since(perf).String()),
+// 	})
+// }
 
 func serveHeat(w http.ResponseWriter, r *http.Request) {
 	perf := time.Now()
@@ -85,7 +83,7 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kq := killstorage.NewKillsQuery(time.Now(), time.Now().Add(-7*24*time.Hour))
+	kq := killstorage.NewKillsQuery(time.Now().Add(-7*24*time.Hour), time.Now())
 	ks.QueryWithLevel(kq, level)
 	tally, err := ks.GetKillCountsByCoord(r.Context(), kq)
 	if err != nil {

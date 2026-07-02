@@ -8,10 +8,7 @@ package frontend
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import (
-	"net/url"
-	"slices"
-)
+import "slices"
 
 func Page(content templ.Component) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -71,7 +68,7 @@ func Index(availableMaps []string) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image id=\"tankmap\"></image> <g id=\"heat\"></g></svg></div><div id=\"settingsDiv\" class=\"settings\"><form hx-swap=\"none\" hx-get=\"/frontend/mapUpdate\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image id=\"tankmap\"></image> <image id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -83,7 +80,7 @@ func Index(availableMaps []string) templ.Component {
 			var templ_7745c5c3_Var3 string
 			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(v)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 49, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 46, Col: 18}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
 			if templ_7745c5c3_Err != nil {
@@ -102,106 +99,29 @@ func Index(availableMaps []string) templ.Component {
 	})
 }
 
-func MapUpdateError(err error) templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var4 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var4 == nil {
-			templ_7745c5c3_Var4 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "<div hx-swap-oob=\"true\" id=\"msgDisplay\">")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var5 string
-		templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(err.Error())
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 78, Col: 15}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "</div>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
+// templ MapUpdateError(err error) {
+// 	<div hx-swap-oob="true" id="msgDisplay">
+// 		{ err.Error() }
+// 	</div>
+// }
 
-type MapUpdateParams struct {
-	Level      string
-	HeatParams url.Values
-}
+// type MapUpdateParams struct {
+// 	Level      string
+// 	HeatParams url.Values
+// }
 
-func MapUpdate(params MapUpdateParams) templ.Component {
-	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
-		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
-		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
-			return templ_7745c5c3_CtxErr
-		}
-		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templruntime.GetBuffer(templ_7745c5c3_W)
-		if !templ_7745c5c3_IsBuffer {
-			defer func() {
-				templ_7745c5c3_BufErr := templruntime.ReleaseBuffer(templ_7745c5c3_Buffer)
-				if templ_7745c5c3_Err == nil {
-					templ_7745c5c3_Err = templ_7745c5c3_BufErr
-				}
-			}()
-		}
-		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var6 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var6 == nil {
-			templ_7745c5c3_Var6 = templ.NopComponent
-		}
-		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "<template><svg><image hx-swap-oob=\"true\" id=\"tankmap\" href=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var7 string
-		templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("/minimap/" + params.Level)
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 90, Col: 75}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "\"></image> <image hx-swap-oob=\"true\" id=\"heat\" href=\"")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		var templ_7745c5c3_Var8 string
-		templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.ResolveAttributeValue("/heat?" + params.HeatParams.Encode())
-		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 91, Col: 83}
-		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var8)
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 11, "\"></image></svg></template>")
-		if templ_7745c5c3_Err != nil {
-			return templ_7745c5c3_Err
-		}
-		return nil
-	})
-}
-
+//	templ MapUpdate(params MapUpdateParams) {
+//		<template>
+//			<svg>
+//				<image hx-swap-oob="true" id="tankmap" href={ "/minimap/" + params.Level }></image>
+//				<image hx-swap-oob="true" id="heat" href={ "/heat?" + params.HeatParams.Encode() }></image>
+//			</svg>
+//		</template>
+//		// <div hx-swap-oob="true" id="offsetsDisplay">
+//		// 	<pre>{ spew.Sdump(params.Offsets) }</pre>
+//		// </div>
+//		// <div hx-swap-oob="true" id="msgDisplay">
+//		// 	{ params.Msg }
+//		// </div>
+//	}
 var _ = templruntime.GeneratedTemplate
