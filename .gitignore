@@ -1,0 +1,5 @@
+main
+logs/
+data/
+cache/
+config.json
