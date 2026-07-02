@@ -1,8 +1,6 @@
 package frontend
 
 import (
-	"main/lib/killstorage"
-	"main/lib/levelcoords"
 	"net/url"
 	"slices"
 )
@@ -63,11 +61,11 @@ templ Index(availableMaps []string) {
 				<p>
 					<button type="submit">Load</button>
 				</p>
-				<p>
-					<label for="brightness">Map brightness:</label>
-					<input id="tankmapBrightnessSlider" name="brightness" type="range" min="0" max="100" value="35"/>
-				</p>
 			</form>
+			<p>
+				<label for="brightness">Map brightness:</label>
+				<input id="tankmapBrightnessSlider" name="brightness" type="range" min="0" max="100" value="35"/>
+			</p>
 			<div id="offsetsDisplay"></div>
 			<div id="msgDisplay"></div>
 		</div>
@@ -82,17 +80,15 @@ templ MapUpdateError(err error) {
 }
 
 type MapUpdateParams struct {
-	Level   string
-	Offsets levelcoords.LevelCoords
-	Msg     string
-	Heat    []killstorage.KillTally
+	Level      string
+	HeatParams url.Values
 }
 
 templ MapUpdate(params MapUpdateParams) {
 	<template>
 		<svg>
 			<image hx-swap-oob="true" id="tankmap" href={ "/minimap/" + params.Level }></image>
-			<image hx-swap-oob="true" id="heat" href={ "/heat?" + url.Values(map[string][]string{"level": []string{params.Level}}).Encode() }></image>
+			<image hx-swap-oob="true" id="heat" href={ "/heat?" + params.HeatParams.Encode() }></image>
 		</svg>
 	</template>
 	// <div hx-swap-oob="true" id="offsetsDisplay">

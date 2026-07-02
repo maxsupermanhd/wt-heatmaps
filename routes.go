@@ -55,7 +55,8 @@ func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Compon
 	// 	return frontend.MapUpdateError(err)
 	// }
 	return frontend.MapUpdate(frontend.MapUpdateParams{
-		Level: level,
+		Level:      level,
+		HeatParams: q,
 		// Offsets: levelOffsets,
 		// Msg:     fmt.Sprintf("Took: %s", time.Since(perf).String()),
 	})
