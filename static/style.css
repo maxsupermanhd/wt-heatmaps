@@ -40,7 +40,8 @@ body {
 }
 
 select,
-button {
+button,
+input {
 	background-color: #111;
 	border-radius: 0.5rem;
 	border: 1px solid #555;

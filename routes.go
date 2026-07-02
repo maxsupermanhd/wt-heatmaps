@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/png"
@@ -12,6 +11,7 @@ import (
 	"math"
 	"net/http"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/a-h/templ"
@@ -44,20 +44,20 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 }
 
 func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Component {
-	perf := time.Now()
+	// perf := time.Now()
 	q := r.URL.Query()
 	level := q.Get("level")
 	if !slices.Contains(slices.Collect(maps.Values(ks.GetDictLevels())), level) {
 		return nil
 	}
-	levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
-	if err != nil {
-		return frontend.MapUpdateError(err)
-	}
+	// levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
+	// if err != nil {
+	// 	return frontend.MapUpdateError(err)
+	// }
 	return frontend.MapUpdate(frontend.MapUpdateParams{
-		Level:   level,
-		Offsets: levelOffsets,
-		Msg:     fmt.Sprintf("Took: %s", time.Since(perf).String()),
+		Level: level,
+		// Offsets: levelOffsets,
+		// Msg:     fmt.Sprintf("Took: %s", time.Since(perf).String()),
 	})
 }
 
@@ -65,6 +65,16 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	perf := time.Now()
 	q := r.URL.Query()
 	level := q.Get("level")
+	scoreIntensityStr := q.Get("scoreIntensity")
+	scoreIntensity, err := strconv.Atoi(scoreIntensityStr)
+	if err != nil {
+		scoreIntensity = 32
+	}
+	countIntensityStr := q.Get("countIntensity")
+	countIntensity, err := strconv.Atoi(countIntensityStr)
+	if err != nil {
+		countIntensity = 32
+	}
 
 	levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
 	if err != nil {
@@ -100,10 +110,10 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		tx := int(float64((float32(v.X)-areaOffsetX)/areaW)*float64(outputW)) / int(scaleH)
 		tz := int(float64(1-(float32(v.Z)-areaOffsetZ)/areaH)*float64(outputH)) / int(scaleW)
 		out.SetRGBA(int(tx), int(tz), color.RGBA{
-			R: uint8(max(min(v.Score*128, 255), 0)),
+			R: uint8(max(min(v.Score*scoreIntensity, 255), 0)),
 			G: 0,
-			B: uint8(max(min(-v.Score*128, 255), 0)),
-			A: uint8(min(v.Count*128, 255)),
+			B: uint8(max(min(-v.Score*scoreIntensity, 255), 0)),
+			A: uint8(min(v.Count*countIntensity, 255)),
 		})
 	}
 	png.Encode(w, out)

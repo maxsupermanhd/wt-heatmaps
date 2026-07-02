@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"github.com/davecgh/go-spew/spew"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
 	"net/url"
@@ -53,6 +52,14 @@ templ Index(availableMaps []string) {
 						}
 					</select>
 				</p>
+				<p style="white-space: nowrap">
+					<label for="scoreIntensity">Score intensity:</label>
+					<input name="scoreIntensity" type="number" value="32"/>
+				</p>
+				<p style="white-space: nowrap">
+					<label for="countIntensity">Count intensity:</label>
+					<input name="countIntensity" type="number" value="32"/>
+				</p>
 				<p>
 					<button type="submit">Load</button>
 				</p>
@@ -88,10 +95,10 @@ templ MapUpdate(params MapUpdateParams) {
 			<image hx-swap-oob="true" id="heat" href={ "/heat?" + url.Values(map[string][]string{"level": []string{params.Level}}).Encode() }></image>
 		</svg>
 	</template>
-	<div hx-swap-oob="true" id="offsetsDisplay">
-		<pre>{ spew.Sdump(params.Offsets) }</pre>
-	</div>
-	<div hx-swap-oob="true" id="msgDisplay">
-		{ params.Msg }
-	</div>
+	// <div hx-swap-oob="true" id="offsetsDisplay">
+	// 	<pre>{ spew.Sdump(params.Offsets) }</pre>
+	// </div>
+	// <div hx-swap-oob="true" id="msgDisplay">
+	// 	{ params.Msg }
+	// </div>
 }
