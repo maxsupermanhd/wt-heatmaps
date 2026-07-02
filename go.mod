@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/DataDog/zstd v1.5.7
-	github.com/a-h/templ v0.3.1001
+	github.com/a-h/templ v0.3.1020
 	github.com/davecgh/go-spew v1.1.1
 	github.com/jackc/pgx/v5 v5.10.0
 	github.com/maxsupermanhd/go-flexutils v0.0.0-20260516211527-904038f0a13a
