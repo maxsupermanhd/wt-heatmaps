@@ -283,7 +283,7 @@ func (s *KillsStorage) QueryWithLevel(q *queryConditions, level string) {
 }
 
 func (q *queryConditions) QueryWithKillerTeam(killerTeam int) {
-	q.whereCase += fmt.Sprintf("AND killerTeam = $%d", len(q.whereArgs))
+	q.whereCase += fmt.Sprintf(" AND killerTeam = $%d", len(q.whereArgs))
 	q.whereArgs = append(q.whereArgs, killerTeam)
 }
 
