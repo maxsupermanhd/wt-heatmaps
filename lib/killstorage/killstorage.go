@@ -283,8 +283,8 @@ func (s *KillsStorage) QueryWithLevel(q *queryConditions, level string) {
 }
 
 func (q *queryConditions) QueryWithKillerTeam(killerTeam int) {
-	q.whereCase += fmt.Sprintf(" AND killer_team = $%d", len(q.whereArgs))
 	q.whereArgs = append(q.whereArgs, killerTeam)
+	q.whereCase += fmt.Sprintf(" AND killer_team = $%d", len(q.whereArgs))
 }
 
 type KillTally struct {
