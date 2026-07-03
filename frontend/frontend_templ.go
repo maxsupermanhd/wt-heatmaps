@@ -68,7 +68,7 @@ func Index(availableMaps []string) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image id=\"tankmap\"></image> <image id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated;\" id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -91,7 +91,7 @@ func Index(availableMaps []string) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</select></p><p style=\"white-space: nowrap\"><label for=\"scoreIntensity\">Score intensity:</label> <input name=\"scoreIntensity\" type=\"number\" value=\"32\"></p><p style=\"white-space: nowrap\"><label for=\"countIntensity\">Count intensity:</label> <input name=\"countIntensity\" type=\"number\" value=\"32\"></p><p><button type=\"submit\">Load</button></p></form><p><label for=\"brightness\">Map brightness:</label> <input id=\"tankmapBrightnessSlider\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\" value=\"35\"></p><div id=\"offsetsDisplay\"></div><div id=\"msgDisplay\"></div></div></div><script type=\"module\" src=\"/static/main.js\"></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</select></p><p style=\"white-space: nowrap\"><label for=\"scoreIntensity\">Score intensity:</label> <input name=\"scoreIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"></p><p style=\"white-space: nowrap\"><label for=\"countIntensity\">Count intensity:</label> <input name=\"countIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"></p><p style=\"white-space: nowrap\"><label for=\"killerTeam\">Killer team:</label> <input name=\"killerTeam\" type=\"number\" value=\"\" min=\"1\" max=\"2\"></p><p><button type=\"submit\">Load</button></p></form><p><label for=\"brightness\">Map brightness:</label> <input id=\"tankmapBrightnessSlider\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\" value=\"35\"></p><div id=\"offsetsDisplay\"></div><div id=\"msgDisplay\"></div></div></div><script type=\"module\" src=\"/static/main.js\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
