@@ -7,12 +7,14 @@ import (
 	"main/lib/caches"
 	"main/lib/lux"
 	"maps"
+	"os"
 	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -229,6 +231,7 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 	br := s.db.SendBatch(context.Background(), b)
 	err = br.Close()
 	if err != nil {
+		os.WriteFile("err.spew", []byte(spew.Sdump(toinsert)), 0644)
 		return fmt.Errorf("batch send: %w", err)
 	}
 	return nil
