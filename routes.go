@@ -64,16 +64,6 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	perf := time.Now()
 	q := r.URL.Query()
 	level := q.Get("level")
-	scoreIntensityStr := q.Get("scoreIntensity")
-	scoreIntensity, err := strconv.Atoi(scoreIntensityStr)
-	if err != nil {
-		scoreIntensity = 32
-	}
-	countIntensityStr := q.Get("countIntensity")
-	countIntensity, err := strconv.Atoi(countIntensityStr)
-	if err != nil {
-		countIntensity = 32
-	}
 
 	levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
 	if err != nil {
@@ -85,6 +75,13 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 
 	kq := killstorage.NewKillsQuery(time.Now().Add(-7*24*time.Hour), time.Now())
 	ks.QueryWithLevel(kq, level)
+	killerTeamStr := q.Get("killerTeam")
+	if killerTeamStr != "" {
+		killerTeam, err := strconv.Atoi(killerTeamStr)
+		if err == nil {
+			kq.QueryWithKillerTeam(killerTeam)
+		}
+	}
 	tally, err := ks.GetKillCountsByCoord(r.Context(), kq)
 	if err != nil {
 		log.Err(err).Msg("get kills")
@@ -101,9 +98,19 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	areaOffsetZ := levelOffsets.TankMap0[1]
 	outputW := int(areaW)
 	outputH := int(areaH)
-
 	scaleW := float32(areaW / 2048)
 	scaleH := float32(areaH / 2048)
+
+	scoreIntensityStr := q.Get("scoreIntensity")
+	scoreIntensity, err := strconv.Atoi(scoreIntensityStr)
+	if err != nil {
+		scoreIntensity = 32
+	}
+	countIntensityStr := q.Get("countIntensity")
+	countIntensity, err := strconv.Atoi(countIntensityStr)
+	if err != nil {
+		countIntensity = 32
+	}
 
 	for _, v := range tally {
 		tx := int(float64((float32(v.X)-areaOffsetX)/areaW)*float64(outputW)) / int(scaleH)
