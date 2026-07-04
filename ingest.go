@@ -32,7 +32,9 @@ func ingestRoutine(exitChan <-chan struct{}) {
 				continue
 			}
 			err = ks.StoreKills(kills)
-			log.Err(err).Int("n", len(kills)).Msg("storing kills")
+			if err != nil {
+				log.Err(err).Int("n", len(kills)).Msg("storing kills")
+			}
 		}
 		log.Info().Msg("carve loop exited")
 	})
