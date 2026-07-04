@@ -26,6 +26,10 @@ func httpLog(f func(w http.ResponseWriter, r *http.Request)) func(w http.Respons
 		} else {
 			ip = r.RemoteAddr[:li]
 		}
+		cfip := r.Header.Get("CF-Connecting-IP")
+		if cfip != "" {
+			ip = cfip
+		}
 		auth := cfg.GetDString("", append([]string{"auth"}, r.Header.Get("Authorization"), "name")...)
 		log.Info().Msgf("%15s %3d %7s %q %q %q",
 			ip, w2.lastStatus, "hit",
