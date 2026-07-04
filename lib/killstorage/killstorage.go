@@ -254,6 +254,13 @@ func (s *KillsStorage) GetDictLevels() (levels map[int]string) {
 	return
 }
 
+func (s *KillsStorage) GetDictVehicles() (vehicles map[int]string) {
+	s.lock.Lock()
+	vehicles = maps.Clone(s.cLevels.Values)
+	s.lock.Unlock()
+	return
+}
+
 type queryConditions struct {
 	whereCase string
 	whereArgs []any
