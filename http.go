@@ -33,11 +33,11 @@ func httpLog(f func(w http.ResponseWriter, r *http.Request)) func(w http.Respons
 		auth := cfg.GetDString("", append([]string{"auth"}, r.Header.Get("Authorization"), "name")...)
 		log.Info().Msgf("%15s %3d %7s %q %q %q",
 			ip, w2.lastStatus, "hit",
-			r.URL.Path, r.UserAgent(), auth)
+			r.URL.RequestURI(), r.UserAgent(), auth)
 		f(w2, r)
 		log.Info().Msgf("%15s %3d %7s %q %q %q",
 			ip, w2.lastStatus, time.Since(startTime).Round(1*time.Millisecond).String(),
-			r.URL.Path, r.UserAgent(), auth)
+			r.URL.RequestURI(), r.UserAgent(), auth)
 	}
 }
 
