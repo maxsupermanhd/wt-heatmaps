@@ -8,7 +8,11 @@ package frontend
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
-import "slices"
+import (
+	"fmt"
+	"maps"
+	"slices"
+)
 
 func Page(content templ.Component) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
@@ -47,7 +51,7 @@ func Page(content templ.Component) templ.Component {
 	})
 }
 
-func Index(availableMaps []string) templ.Component {
+func Index(levels map[string]int, vehicles []string) templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -68,30 +72,68 @@ func Index(availableMaps []string) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated;\" id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option> ")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated;\" id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		for _, v := range slices.Sorted(slices.Values(availableMaps)) {
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<option>")
+		keys := slices.Collect(maps.Keys(levels))
+		slices.Sort(keys)
+		for _, v := range keys {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<option value=\"")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var3 string
-			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(v)
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.ResolveAttributeValue(v)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 46, Col: 18}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 54, Col: 24}
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var3)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</option>")
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "\">")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var4 string
+			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.JoinStringErrs(fmt.Sprintf("%d + %s", levels[v], v))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 54, Col: 65}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var4))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</option>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 6, "</select></p><p style=\"white-space: nowrap\"><label for=\"scoreIntensity\">Score intensity:</label> <input name=\"scoreIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"></p><p style=\"white-space: nowrap\"><label for=\"countIntensity\">Count intensity:</label> <input name=\"countIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"></p><p style=\"white-space: nowrap\"><label for=\"killerTeam\">Killer team:</label> <input name=\"killerTeam\" type=\"number\" value=\"\" min=\"1\" max=\"2\"></p><p><button type=\"submit\">Load</button></p></form><p><label for=\"brightness\">Map brightness:</label> <input id=\"tankmapBrightnessSlider\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\" value=\"35\"></p><div id=\"offsetsDisplay\"></div><div id=\"msgDisplay\"></div></div></div><script type=\"module\" src=\"/static/main.js\"></script>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 7, "</select></p><p style=\"white-space: nowrap\"><label for=\"scoreIntensity\">Score intensity:</label> <input name=\"scoreIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"></p><p style=\"white-space: nowrap\"><label for=\"countIntensity\">Count intensity:</label> <input name=\"countIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"></p><p style=\"white-space: nowrap\"><label for=\"killerTeam\">Killer team:</label> <input name=\"killerTeam\" type=\"number\" value=\"\" min=\"1\" max=\"2\"></p><p style=\"white-space: nowrap\"><label for=\"killTimeMin\">Kill time min (seconds):</label> <input name=\"killTimeMin\" type=\"number\" value=\"\" min=\"0\" max=\"1800\"></p><p style=\"white-space: nowrap\"><label for=\"killTimeMax\">Kill time max (seconds):</label> <input name=\"killTimeMax\" type=\"number\" value=\"\" min=\"0\" max=\"1800\"></p><p style=\"white-space: nowrap\"><label for=\"killerVehicle\">Killer vehicle:</label> <select name=\"killerVehicle\"><option selected></option> ")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		for _, v := range vehicles {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<option>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var5 string
+			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(v)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 83, Col: 18}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 9, "</option>")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 10, "</select></p><p><button type=\"submit\">Load</button></p></form><p><div><label for=\"brightness\">Map brightness:</label></div><input id=\"tankmapBrightnessSlider\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\" value=\"35\"></p><div id=\"offsetsDisplay\"></div><div id=\"msgDisplay\"></div></div></div><script type=\"module\" src=\"/static/main.js\"></script>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -35,7 +35,7 @@ body {
 }
 
 .content > div.settings {
-	flex: 0 1 300px;
+	flex: 0 1 auto;
 	min-width: 200px;
 }
 

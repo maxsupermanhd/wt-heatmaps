@@ -1,6 +1,10 @@
 package frontend
 
-import "slices"
+import (
+	"fmt"
+	"maps"
+	"slices"
+)
 
 templ Page(content templ.Component) {
 	<!DOCTYPE html>
@@ -23,7 +27,7 @@ templ Page(content templ.Component) {
 	</html>
 }
 
-templ Index(availableMaps []string) {
+templ Index(levels map[string]int, vehicles []string) {
 	<div class="content">
 		<div class="map">
 			<svg id="mapview" width="100%" height="100%">
@@ -42,8 +46,12 @@ templ Index(availableMaps []string) {
 					<label for="level">Map:</label>
 					<select name="level">
 						<option selected></option>
-						for _, v := range slices.Sorted(slices.Values(availableMaps)) {
-							<option>{ v }</option>
+						{{
+							keys := slices.Collect(maps.Keys(levels))
+							slices.Sort(keys)
+						}}
+						for _, v := range keys {
+							<option value={ v }>{ fmt.Sprintf("%d + %s", levels[v], v) }</option>
 						}
 					</select>
 				</p>
@@ -59,12 +67,29 @@ templ Index(availableMaps []string) {
 					<label for="killerTeam">Killer team:</label>
 					<input name="killerTeam" type="number" value="" min="1" max="2"/>
 				</p>
+				<p style="white-space: nowrap">
+					<label for="killTimeMin">Kill time min (seconds):</label>
+					<input name="killTimeMin" type="number" value="" min="0" max="1800"/>
+				</p>
+				<p style="white-space: nowrap">
+					<label for="killTimeMax">Kill time max (seconds):</label>
+					<input name="killTimeMax" type="number" value="" min="0" max="1800"/>
+				</p>
+				<p style="white-space: nowrap">
+					<label for="killerVehicle">Killer vehicle:</label>
+					<select name="killerVehicle">
+						<option selected></option>
+						for _, v := range vehicles {
+							<option>{ v }</option>
+						}
+					</select>
+				</p>
 				<p>
 					<button type="submit">Load</button>
 				</p>
 			</form>
 			<p>
-				<label for="brightness">Map brightness:</label>
+				<div><label for="brightness">Map brightness:</label></div>
 				<input id="tankmapBrightnessSlider" name="brightness" type="range" min="0" max="100" value="35"/>
 			</p>
 			<div id="offsetsDisplay"></div>

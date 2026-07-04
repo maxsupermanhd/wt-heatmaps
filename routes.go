@@ -7,8 +7,10 @@ import (
 	"main/frontend"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
+	"maps"
 	"math"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -33,12 +35,14 @@ func makeHTTPServeMux() http.HandlerFunc {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
-	levels, missions, vehicles, weapons := ks.GetMeta()
-	_ = levels
-	_ = missions
-	_ = vehicles
-	_ = weapons
-	return frontend.Page(frontend.Index(levels))
+	levels, err := ks.GetAmountsByLevel(r.Context())
+	if err != nil {
+		log.Err(err).Msg("get amounts by level")
+		levels = map[string]int{}
+	}
+	vehicles := slices.Collect(maps.Values(ks.GetDictVehicles()))
+	slices.Sort(vehicles)
+	return frontend.Page(frontend.Index(levels, vehicles))
 }
 
 // func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Component {
@@ -81,6 +85,24 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		if err == nil {
 			kq.QueryWithKillerTeam(killerTeam)
 		}
+	}
+	killTimeMinStr := q.Get("killTimeMin")
+	if killTimeMinStr != "" {
+		killTimeMin, err := strconv.Atoi(killTimeMinStr)
+		if err == nil {
+			kq.QueryWithKillTimeMin(time.Duration(killTimeMin) * time.Second)
+		}
+	}
+	killTimeMaxStr := q.Get("killTimeMax")
+	if killTimeMaxStr != "" {
+		killTimeMax, err := strconv.Atoi(killTimeMaxStr)
+		if err == nil {
+			kq.QueryWithKillTimeMax(time.Duration(killTimeMax) * time.Second)
+		}
+	}
+	killerVehicle := q.Get("killerVehicle")
+	if killerVehicle != "" {
+		ks.QueryWithKillerVehicle(kq, killerVehicle)
 	}
 	tally, err := ks.GetKillCountsByCoord(r.Context(), kq)
 	if err != nil {

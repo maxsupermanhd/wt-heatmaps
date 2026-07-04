@@ -256,7 +256,7 @@ func (s *KillsStorage) GetDictLevels() (levels map[int]string) {
 
 func (s *KillsStorage) GetDictVehicles() (vehicles map[int]string) {
 	s.lock.Lock()
-	vehicles = maps.Clone(s.cLevels.Values)
+	vehicles = maps.Clone(s.cVehicles.Values)
 	s.lock.Unlock()
 	return
 }
@@ -278,20 +278,36 @@ func (s *KillsStorage) QueryWithLevel(q *queryConditions, level string) {
 	levelID, ok := s.cLevels.GetExistingIDNOLOCK(level)
 	s.lock.Unlock()
 	if !ok {
-		levelID = -1
-	}
-	if len(q.whereArgs) > 0 {
-		q.whereCase += " AND "
-	} else {
-		q.whereCase = "WHERE "
+		return
 	}
 	q.whereArgs = append(q.whereArgs, levelID)
-	q.whereCase += fmt.Sprintf("level = $%d", len(q.whereArgs))
+	q.whereCase += fmt.Sprintf(" AND level = $%d", len(q.whereArgs))
 }
 
 func (q *queryConditions) QueryWithKillerTeam(killerTeam int) {
 	q.whereArgs = append(q.whereArgs, killerTeam)
 	q.whereCase += fmt.Sprintf(" AND killer_team = $%d", len(q.whereArgs))
+}
+
+func (q *queryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
+	q.whereArgs = append(q.whereArgs, killTimeMin.Milliseconds())
+	q.whereCase += fmt.Sprintf(" AND kill_time >= $%d", len(q.whereArgs))
+}
+
+func (q *queryConditions) QueryWithKillTimeMax(killTimeMax time.Duration) {
+	q.whereArgs = append(q.whereArgs, killTimeMax.Milliseconds())
+	q.whereCase += fmt.Sprintf(" AND kill_time <= $%d", len(q.whereArgs))
+}
+
+func (s *KillsStorage) QueryWithKillerVehicle(q *queryConditions, vehicle string) {
+	s.lock.Lock()
+	vehicleID, ok := s.cVehicles.GetExistingIDNOLOCK(vehicle)
+	s.lock.Unlock()
+	if !ok {
+		return
+	}
+	q.whereArgs = append(q.whereArgs, vehicleID)
+	q.whereCase += fmt.Sprintf(" AND killer_vehicle = $%d", len(q.whereArgs))
 }
 
 type KillTally struct {
@@ -301,7 +317,7 @@ type KillTally struct {
 }
 
 func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *queryConditions) ([]KillTally, error) {
-	rows, err := s.db.Query(ctx, `SELECT
+	q := `SELECT
   (ROUND(p.x))::int AS x,
   (ROUND(p.z))::int AS z,
   SUM(p.delta)      AS score,
@@ -312,19 +328,42 @@ CROSS JOIN LATERAL (
     (t.killer_posx, t.killer_posz,  1),
     (t.victim_posx, t.victim_posz, -1)
 ) AS p(x, z, delta)
-`+conds.whereCase+`
-GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`, conds.whereArgs...)
+` + conds.whereCase + `
+GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
+	rows, err := s.db.Query(ctx, q, conds.whereArgs...)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
+	// log.Info().Msg(q)
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (KillTally, error) {
 		var ret KillTally
 		row.Scan(&ret.X, &ret.Z, &ret.Score, &ret.Count)
 		return ret, err
 	})
+}
+
+func (s *KillsStorage) GetAmountsByLevel(ctx context.Context) (map[string]int, error) {
+	rows, err := s.db.Query(ctx, `select level, count(*) from kills group by level order by 2 desc;`)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return map[string]int{}, nil
+		}
+	}
+	var s1, s2 int
+	ret := map[string]int{}
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	_, err = pgx.ForEachRow(rows, []any{&s1, &s2}, func() error {
+		levelString, ok := s.cLevels.GetValueNOLOCK(s1)
+		if ok {
+			ret[levelString] = s2
+		}
+		return nil
+	})
+	return ret, err
 }
 
 // func (s *KillsStorage) GetKillCounts(from time.Time, hours uint) ([]int, error) {
