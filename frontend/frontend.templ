@@ -51,7 +51,7 @@ templ Index(levels map[string]int, vehicles []string) {
 							slices.Sort(keys)
 						}}
 						for _, v := range keys {
-							<option value={ v }>{ fmt.Sprintf("%d + %s", levels[v], v) }</option>
+							<option value={ v }>{ fmt.Sprintf("%05d + %s", levels[v], v) }</option>
 						}
 					</select>
 				</p>
