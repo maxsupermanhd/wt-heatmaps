@@ -25,6 +25,9 @@ func NewFetchFileCache(cacheDirPath string, fetchFn func(k string) ([]byte, erro
 }
 
 func (c *FetchFileCache) GetNOLOCK(k string) (ret []byte, err error) {
+	if k == "" {
+		return []byte{}, errors.New("empty key")
+	}
 	ret, err = os.ReadFile(filepath.Join(c.CacheDirPath, k))
 	if err == nil {
 		return
