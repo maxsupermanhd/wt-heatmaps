@@ -72,7 +72,7 @@ func Index(levels map[string]int, vehicles []string) templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated;\" id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div class=\"content\"><div class=\"map\"><svg id=\"mapview\" width=\"100%\" height=\"100%\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated; width:2048px; height:2048px\" id=\"heat\"></image></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p style=\"white-space: nowrap\"><label for=\"level\">Map:</label> <select name=\"level\"><option selected></option>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

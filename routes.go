@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"image"
 	"image/color"
-	"image/png"
 	"main/frontend"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/fogleman/gg"
 	"github.com/rs/zerolog/log"
 )
 
@@ -112,16 +113,13 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out := image.NewRGBA(image.Rect(0, 0, 2048, 2048))
-
 	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
 	areaH := float32(math.Abs(float64(levelOffsets.TankMap0[1] - levelOffsets.TankMap1[1])))
 	areaOffsetX := levelOffsets.TankMap0[0]
 	areaOffsetZ := levelOffsets.TankMap0[1]
 	outputW := int(areaW)
 	outputH := int(areaH)
-	scaleW := float32(areaW / 2048)
-	scaleH := float32(areaH / 2048)
+	out := image.NewRGBA(image.Rect(0, 0, outputW, outputH))
 
 	scoreIntensityStr := q.Get("scoreIntensity")
 	scoreIntensity, err := strconv.Atoi(scoreIntensityStr)
@@ -134,20 +132,26 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		countIntensity = 32
 	}
 
-	log.Info().Msgf("scale %f %f area %f %f offsets %#v", scaleW, scaleH, areaW, areaH, levelOffsets)
-
+	// log.Info().Msgf("scale %f %f area %f %f offsets %#v", scaleW, scaleH, areaW, areaH, levelOffsets)
+	totalN := 0
 	for _, v := range tally {
-		tx := int(float64((float32(v.X)-areaOffsetX)/areaW)*float64(outputW)) / int(scaleH)
-		tz := int(float64(1-(float32(v.Z)-areaOffsetZ)/areaH)*float64(outputH)) / int(scaleW)
+		tx := math.Round(float64(float64((float32(v.X)-areaOffsetX)/areaW) * float64(outputW)))
+		tz := math.Round(float64(float64(1-(float32(v.Z)-areaOffsetZ)/areaH) * float64(outputH)))
 		out.SetRGBA(int(tx), int(tz), color.RGBA{
 			R: uint8(max(min(v.Score*scoreIntensity, 255), 0)),
 			G: 0,
 			B: uint8(max(min(-v.Score*scoreIntensity, 255), 0)),
 			A: uint8(min(v.Count*countIntensity, 255)),
 		})
+		totalN += v.Count
 	}
-	png.Encode(w, out)
-	log.Info().Dur("perf", time.Since(perf)).Int("n", len(tally)).Msg("heat")
+	ggStrings(gg.NewContextForImage(out), 20, 20, color.RGBA{R: 255, G: 255, B: 255, A: 128}, color.RGBA{R: 0, G: 0, B: 0, A: 255},
+		"Rendered by FlexCoral at thunder.nanachi.party",
+		"Data provided by Lux",
+		fmt.Sprintf("Data points: %d", totalN),
+		time.Now().Round(0).String(),
+	).EncodePNG(w)
+	log.Info().Dur("perf", time.Since(perf)).Int("nPix", len(tally)).Int("nDp", totalN).Msg("heat")
 }
 
 func compRender(f func(w http.ResponseWriter, r *http.Request) templ.Component) func(w http.ResponseWriter, r *http.Request) {
@@ -157,6 +161,20 @@ func compRender(f func(w http.ResponseWriter, r *http.Request) templ.Component) 
 			c.Render(r.Context(), w)
 		}
 	}
+}
+
+func ggStrings(ctx *gg.Context, ox, oy float64, colBg, colFg color.RGBA, vals ...string) *gg.Context {
+	for _, v := range vals {
+		sw, sh := ctx.MeasureString(v)
+		ctx.SetRGBA(float64(colBg.R)/255, float64(colBg.G)/255, float64(colBg.B)/255, float64(colBg.A)/255)
+		ctx.DrawRectangle(ox-1, oy+3, sw+1, sh)
+		ctx.Fill()
+		ctx.SetRGBA(float64(colFg.R)/255, float64(colFg.G)/255, float64(colFg.B)/255, float64(colFg.A)/255)
+		oy += sh
+		ctx.DrawString(v, ox, oy)
+		oy += 2
+	}
+	return ctx
 }
 
 // func handleWsFrontend(ws *websocket.Conn) {
