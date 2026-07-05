@@ -134,6 +134,8 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		countIntensity = 32
 	}
 
+	log.Info().Msgf("scale %f %f area %f %f offsets %#v", scaleW, scaleH, areaW, areaH, levelOffsets)
+
 	for _, v := range tally {
 		tx := int(float64((float32(v.X)-areaOffsetX)/areaW)*float64(outputW)) / int(scaleH)
 		tz := int(float64(1-(float32(v.Z)-areaOffsetZ)/areaH)*float64(outputH)) / int(scaleW)
