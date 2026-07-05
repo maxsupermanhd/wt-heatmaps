@@ -201,13 +201,13 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 			return fmt.Errorf("get id of victim vehicle %q (kill %d): %w", k.VictimVehicle, i, err)
 		}
 		t := time.Unix(int64(k.SessionTime), 0)
-		tableName := fmt.Sprintf("kills_y%dm%dd%dh%d", t.Year(), t.Month(), t.Day(), t.Hour())
+		tableName := fmt.Sprintf("kills_y%dm%dd%d", t.Year(), t.Month(), t.Day())
 		if !slices.Contains(s.partitions, tableName) {
-			t2 := t.Add(time.Hour)
+			t2 := t.Add(24 * time.Hour)
 			_, err = s.db.Exec(context.Background(), fmt.Sprintf(`create table if not exists %s partition of kills
-				for values from ('%d-%d-%d %d:00:00') to ('%d-%d-%d %d:00:00')`, tableName,
-				t.Year(), t.Month(), t.Day(), t.Hour(),
-				t2.Year(), t2.Month(), t2.Day(), t2.Hour()))
+				for values from ('%d-%d-%d 00:00:00') to ('%d-%d-%d 00:00:00')`, tableName,
+				t.Year(), t.Month(), t.Day(),
+				t2.Year(), t2.Month(), t2.Day()))
 			if err != nil {
 				s.lock.Unlock()
 				return fmt.Errorf("partition %q %q create: %w", t.String(), t2.String(), err)
