@@ -49,3 +49,13 @@ input {
 	color: #ddd;
 	font: inherit;
 }
+
+#levelSelector {
+	background-color: #111;
+	border: 1px solid #ddd;
+	border-radius: 5px;
+	padding: 1em;
+	color: #ddd;
+	height: 90%;
+	overflow-y: scroll;
+}

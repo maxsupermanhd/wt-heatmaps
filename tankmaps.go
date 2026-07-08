@@ -1,11 +1,16 @@
 package main
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"strings"
+
+	"golang.org/x/image/draw"
 )
 
 func fetchTankmap(kb64 string) ([]byte, error) {
@@ -30,12 +35,37 @@ func fetchTankmap(kb64 string) ([]byte, error) {
 }
 
 func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
+	resizeTo := 0
+	switch r.PathValue("size") {
+	case "128":
+		resizeTo = 128
+	case "2048":
+		resizeTo = 2048
+	default:
+		w.WriteHeader(400)
+	}
 	ret, err := tankmapsCache.Get(base64.StdEncoding.EncodeToString([]byte(r.PathValue("k"))))
 	if err != nil {
 		w.WriteHeader(500)
 		w.Write([]byte(err.Error()))
 		return
 	}
-	w.WriteHeader(200)
-	w.Write(ret)
+	if resizeTo == 2048 {
+		w.WriteHeader(200)
+		w.Write(ret)
+		return
+	}
+	if resizeTo != 2048 {
+		im, err := png.Decode(bytes.NewBuffer(ret))
+		if err != nil {
+			w.WriteHeader(500)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		out := image.NewRGBA(image.Rect(0, 0, resizeTo, resizeTo))
+		draw.ApproxBiLinear.Scale(out, out.Rect, im, im.Bounds(), draw.Over, nil)
+		w.WriteHeader(200)
+		png.Encode(w, out)
+	}
+
 }

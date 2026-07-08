@@ -1,7 +1,6 @@
 package frontend
 
 import (
-	"fmt"
 	"maps"
 	"slices"
 )
@@ -44,16 +43,38 @@ templ Index(levels map[string]int, vehicles []string) {
 			<form id="settingsForm">
 				<p style="white-space: nowrap">
 					<label for="level">Map:</label>
-					<select name="level">
-						<option selected></option>
+					<button type="button" popovertarget="levelSelector">Select</button>
+					<input id="settingsFormLevelInput" name="level" readonly/>
+					<div popover id="levelSelector">
+						<center><b>Select map:</b></center>
 						{{
 							keys := slices.Collect(maps.Keys(levels))
 							slices.Sort(keys)
 						}}
-						for _, v := range keys {
-							<option value={ v }>{ fmt.Sprintf("%07d + %s", levels[v], v) }</option>
-						}
-					</select>
+						<table>
+							<thead>
+								<tr>
+									<th>Level name<br/>Data points</th>
+									<th>Image</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, v := range keys {
+									<tr>
+										<td>
+											<center>
+												<button type="button" onclick="document.getElementById('settingsFormLevelInput').value = this.dataset.levelSelectValue;" data-level-select-value={ v } popovertargetaction="hide" popovertarget="levelSelector">{ v }</button>
+												<div>
+													{ levels[v] }
+												</div>
+											</center>
+										</td>
+										<td><img src={ "/minimap/128/" + v } width="128" height="128"/></td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
 				</p>
 				<p style="white-space: nowrap">
 					<label for="scoreIntensity">Score intensity:</label>
@@ -85,7 +106,7 @@ templ Index(levels map[string]int, vehicles []string) {
 					</select>
 				</p>
 				<p>
-					<button type="submit">Load</button>
+					<button type="submit" id="settingsSubmitBtn">Load</button>
 				</p>
 			</form>
 			<p>

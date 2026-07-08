@@ -64,8 +64,11 @@ document.getElementById("tankmapBrightnessSlider").oninput = (e) => {
 const form = document.querySelector("#settingsForm");
 
 form.addEventListener("submit", (e) => {
+	if (e.submitter.id != "settingsSubmitBtn") {
+		return;
+	}
 	e.preventDefault();
-	let f = new FormData(settingsForm);
+	let f = new FormData(form);
 	if (f.get("level") == "") {
 		return;
 	}
@@ -74,5 +77,9 @@ form.addEventListener("submit", (e) => {
 		.setAttribute("href", "/heat?" + new URLSearchParams(f).toString());
 	document
 		.getElementById("tankmap")
-		.setAttribute("href", "/minimap/" + f.get("level"));
+		.setAttribute("href", "/minimap/2048/" + f.get("level"));
 });
+
+var applySettingsLevel = (e) => {
+	console.log(e);
+};
