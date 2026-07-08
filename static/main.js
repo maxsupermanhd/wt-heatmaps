@@ -66,6 +66,9 @@ const form = document.querySelector("#settingsForm");
 form.addEventListener("submit", (e) => {
 	e.preventDefault();
 	let f = new FormData(settingsForm);
+	if (f.get("level") == "") {
+		return;
+	}
 	document
 		.getElementById("heat")
 		.setAttribute("href", "/heat?" + new URLSearchParams(f).toString());
