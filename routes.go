@@ -74,6 +74,10 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	perf := time.Now()
 	q := r.URL.Query()
 	level := q.Get("level")
+	if level == "" {
+		w.WriteHeader(204)
+		return
+	}
 
 	levelOffsets, err := levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
 	if err != nil {
