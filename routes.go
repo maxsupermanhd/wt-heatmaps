@@ -25,7 +25,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /static/", httpLog(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP))
 	mux.HandleFunc("GET /{$}", httpLog(compRender(serveIndex)))
 
-	mux.HandleFunc("GET /minimap/{size}/{k...}", httpLog(serveCachedMinimaps))
+	mux.HandleFunc("GET /minimap/{size}/{k...}", serveCachedMinimaps)
 	mux.HandleFunc("GET /heat", httpLog(serveHeat))
 	// mux.HandleFunc("GET /frontend/mapUpdate", httpLog(compRender(serveFrontendMapUpdate)))
 	// mux.HandleFunc("GET /ws/frontend", httpLog(websocket.Server{
