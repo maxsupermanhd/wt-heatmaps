@@ -32,6 +32,11 @@ func makeHTTPServeMux() http.HandlerFunc {
 	// 	Handler: handleWsFrontend,
 	// }.ServeHTTP))
 
+	mux.HandleFunc("GET /missions", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("GET /clans", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("GET /players", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("GET /sessions", httpLog(servePermaRedirect("/")))
+
 	return mux.ServeHTTP
 }
 
@@ -175,6 +180,13 @@ func ggStrings(ctx *gg.Context, ox, oy float64, colBg, colFg color.RGBA, vals ..
 		oy += 2
 	}
 	return ctx
+}
+
+func servePermaRedirect(location string) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Location", location)
+		w.WriteHeader(http.StatusMovedPermanently)
+	}
 }
 
 // func handleWsFrontend(ws *websocket.Conn) {
