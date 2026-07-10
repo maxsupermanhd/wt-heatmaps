@@ -262,19 +262,12 @@ func (s *KillsStorage) GetDictVehicles() (vehicles map[int]string) {
 	return
 }
 
-type queryConditions struct {
-	whereCase string
-	whereArgs []any
+type QueryConditions struct {
+	whereConds []string
+	whereArgs  []any
 }
 
-func NewKillsQuery(tsFrom, tsTo time.Time) *queryConditions {
-	return &queryConditions{
-		whereCase: "WHERE session_time >= $1 AND session_time <= $2",
-		whereArgs: []any{tsFrom, tsTo},
-	}
-}
-
-func (s *KillsStorage) QueryWithLevel(q *queryConditions, level string) {
+func (s *KillsStorage) QueryWithLevel(q *QueryConditions, level string) {
 	s.lock.Lock()
 	levelID, ok := s.cLevels.GetExistingIDNOLOCK(level)
 	s.lock.Unlock()
@@ -282,25 +275,10 @@ func (s *KillsStorage) QueryWithLevel(q *queryConditions, level string) {
 		return
 	}
 	q.whereArgs = append(q.whereArgs, levelID)
-	q.whereCase += fmt.Sprintf(" AND level = $%d", len(q.whereArgs))
+	q.whereConds = append(q.whereConds, fmt.Sprintf("level = $%d", len(q.whereArgs)))
 }
 
-func (q *queryConditions) QueryWithKillerTeam(killerTeam int) {
-	q.whereArgs = append(q.whereArgs, killerTeam)
-	q.whereCase += fmt.Sprintf(" AND killer_team = $%d", len(q.whereArgs))
-}
-
-func (q *queryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
-	q.whereArgs = append(q.whereArgs, killTimeMin.Milliseconds())
-	q.whereCase += fmt.Sprintf(" AND kill_time >= $%d", len(q.whereArgs))
-}
-
-func (q *queryConditions) QueryWithKillTimeMax(killTimeMax time.Duration) {
-	q.whereArgs = append(q.whereArgs, killTimeMax.Milliseconds())
-	q.whereCase += fmt.Sprintf(" AND kill_time <= $%d", len(q.whereArgs))
-}
-
-func (s *KillsStorage) QueryWithKillerVehicle(q *queryConditions, vehicle string) {
+func (s *KillsStorage) QueryWithKillerVehicle(q *QueryConditions, vehicle string) {
 	s.lock.Lock()
 	vehicleID, ok := s.cVehicles.GetExistingIDNOLOCK(vehicle)
 	s.lock.Unlock()
@@ -308,7 +286,36 @@ func (s *KillsStorage) QueryWithKillerVehicle(q *queryConditions, vehicle string
 		return
 	}
 	q.whereArgs = append(q.whereArgs, vehicleID)
-	q.whereCase += fmt.Sprintf(" AND killer_vehicle = $%d", len(q.whereArgs))
+	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_vehicle = $%d", len(q.whereArgs)))
+}
+
+func (q *QueryConditions) QueryWithSessionTimeMin(tsFrom time.Time) {
+	q.whereArgs = append(q.whereArgs, tsFrom)
+	q.whereConds = append(q.whereConds, fmt.Sprintf("session_time >= $%d", len(q.whereArgs)))
+}
+
+func (q *QueryConditions) QueryWithSessionTimeMax(tsTo time.Time) {
+	q.whereArgs = append(q.whereArgs, tsTo)
+	q.whereConds = append(q.whereConds, fmt.Sprintf("session_time < $%d", len(q.whereArgs)))
+}
+
+func (q *QueryConditions) QueryWithKillerTeam(killerTeam int) {
+	q.whereArgs = append(q.whereArgs, killerTeam)
+	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_team = $%d", len(q.whereArgs)))
+}
+
+func (q *QueryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
+	q.whereArgs = append(q.whereArgs, killTimeMin.Milliseconds())
+	q.whereConds = append(q.whereConds, fmt.Sprintf("kill_time >= $%d", len(q.whereArgs)))
+}
+
+func (q *QueryConditions) QueryWithKillTimeMax(killTimeMax time.Duration) {
+	q.whereArgs = append(q.whereArgs, killTimeMax.Milliseconds())
+	q.whereConds = append(q.whereConds, fmt.Sprintf("kill_time <= $%d", len(q.whereArgs)))
+}
+
+func (q *QueryConditions) whereCase() string {
+	return "WHERE " + strings.Join(q.whereConds, " AND ")
 }
 
 type KillTally struct {
@@ -317,7 +324,7 @@ type KillTally struct {
 	Count int
 }
 
-func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *queryConditions) ([]KillTally, error) {
+func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryConditions) ([]KillTally, error) {
 	q := `SELECT
   (ROUND(p.x))::int AS x,
   (ROUND(p.z))::int AS z,
@@ -329,7 +336,7 @@ CROSS JOIN LATERAL (
     (t.killer_posx, t.killer_posz,  1),
     (t.victim_posx, t.victim_posz, -1)
 ) AS p(x, z, delta)
-` + conds.whereCase + `
+` + conds.whereCase() + `
 GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
 	rows, err := s.db.Query(ctx, q, conds.whereArgs...)
 	if err != nil {

@@ -87,7 +87,7 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kq := killstorage.NewKillsQuery(time.Now().Add(-7*24*time.Hour), time.Now())
+	kq := &killstorage.QueryConditions{} //(time.Now().Add(-7*24*time.Hour), time.Now())
 	ks.QueryWithLevel(kq, level)
 	killerTeamStr := q.Get("killerTeam")
 	if killerTeamStr != "" {
