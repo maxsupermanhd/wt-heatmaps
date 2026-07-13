@@ -51,6 +51,7 @@ func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if resizeTo == 2048 {
+		w.Header().Add("Cache-Control", "max-age=1814400")
 		w.WriteHeader(200)
 		w.Write(ret)
 		return
@@ -64,6 +65,7 @@ func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 		}
 		out := image.NewRGBA(image.Rect(0, 0, resizeTo, resizeTo))
 		draw.ApproxBiLinear.Scale(out, out.Rect, im, im.Bounds(), draw.Over, nil)
+		w.Header().Add("Cache-Control", "max-age=1814400")
 		w.WriteHeader(200)
 		png.Encode(w, out)
 	}
