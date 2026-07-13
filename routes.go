@@ -32,10 +32,10 @@ func makeHTTPServeMux() http.HandlerFunc {
 	// 	Handler: handleWsFrontend,
 	// }.ServeHTTP))
 
-	mux.HandleFunc("/missions/", httpLog(servePermaRedirect("/")))
-	mux.HandleFunc("/clans/", httpLog(servePermaRedirect("/")))
-	mux.HandleFunc("/players/", httpLog(servePermaRedirect("/")))
-	mux.HandleFunc("/sessions/", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("/missions...", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("/clans...", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("/players...", httpLog(servePermaRedirect("/")))
+	mux.HandleFunc("/sessions...", httpLog(servePermaRedirect("/")))
 
 	return mux.ServeHTTP
 }
