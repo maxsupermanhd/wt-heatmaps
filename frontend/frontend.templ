@@ -1,10 +1,5 @@
 package frontend
 
-import (
-	"maps"
-	"slices"
-)
-
 templ Page(content templ.Component) {
 	<!DOCTYPE html>
 	<html lang="en">
@@ -26,7 +21,12 @@ templ Page(content templ.Component) {
 	</html>
 }
 
-templ Index(levels map[string]int, vehicles []string) {
+type LevelStat struct {
+	Level string
+	Samples int
+}
+
+templ Index(levels []LevelStat, vehicles []string) {
 	<div class="content">
 		<div class="map">
 			<svg id="mapview" width="100%" height="100%">
@@ -47,10 +47,6 @@ templ Index(levels map[string]int, vehicles []string) {
 					<input id="settingsFormLevelInput" name="level" readonly/>
 					<div popover id="levelSelector">
 						<center><b>Select map:</b></center>
-						{{
-							keys := slices.Collect(maps.Keys(levels))
-							slices.Sort(keys)
-						}}
 						<table>
 							<thead>
 								<tr>
@@ -59,17 +55,17 @@ templ Index(levels map[string]int, vehicles []string) {
 								</tr>
 							</thead>
 							<tbody>
-								for _, v := range keys {
+								for _, v := range levels {
 									<tr>
 										<td>
 											<center>
-												<button type="button" onclick="document.getElementById('settingsFormLevelInput').value = this.dataset.levelSelectValue;" data-level-select-value={ v } popovertargetaction="hide" popovertarget="levelSelector">{ v }</button>
+												<button type="button" onclick="document.getElementById('settingsFormLevelInput').value = this.dataset.levelSelectValue;" data-level-select-value={ v.Level } popovertargetaction="hide" popovertarget="levelSelector">{ v.Level }</button>
 												<div>
-													{ levels[v] }
+													Samples: { v.Samples }
 												</div>
 											</center>
 										</td>
-										<td><img src={ "/minimap/128/" + v } width="128" height="128"/></td>
+										<td><img src={ "/minimap/128/" + v.Level } width="128" height="128"/></td>
 									</tr>
 								}
 							</tbody>

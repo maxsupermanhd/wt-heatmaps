@@ -53,6 +53,10 @@ func main() {
 	stopHttp := goflexutils.StartBackgroundRoutine(log.Logger, "http", httpRoutine)
 	stopIngest := goflexutils.StartBackgroundRoutine(log.Logger, "ingest", ingestRoutine)
 
+	go func() {
+		getSortedLevelStats(context.Background())
+	}()
+
 	<-ctx.Done()
 	log.Info().Msg("shutting down")
 

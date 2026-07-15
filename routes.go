@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bytes"
+	"context"
+	"encoding/base64"
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
 	"main/frontend"
+	"main/lib/imagecolorsort"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
 	"maps"
@@ -40,15 +45,56 @@ func makeHTTPServeMux() http.HandlerFunc {
 	return mux.ServeHTTP
 }
 
+var (
+	levelByColorSorter = imagecolorsort.NewImageColorSort(func(id string) (*image.RGBA, error) {
+		ret, err := tankmapsCache.Get(base64.StdEncoding.EncodeToString([]byte(id)))
+		if err != nil {
+			return nil, err
+		}
+		im, err := png.Decode(bytes.NewReader(ret))
+		imRGBA, ok := im.(*image.RGBA)
+		if !ok {
+			imNRGBA, ok := im.(*image.NRGBA)
+			if !ok {
+				return nil, fmt.Errorf("not rgba or nrgba from tankmap cache: %T", im)
+			}
+			imRGBA = &image.RGBA{
+				Pix:    imNRGBA.Pix,
+				Stride: imNRGBA.Stride,
+				Rect:   imNRGBA.Rect,
+			}
+		}
+		// log.Info().Str("id", id).Msg("colorguessing")
+		return imRGBA, nil
+	})
+)
+
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
-	levels, err := ks.GetAmountsByLevel(r.Context())
-	if err != nil {
-		log.Err(err).Msg("get amounts by level")
-		levels = map[string]int{}
-	}
+	levels := getSortedLevelStats(r.Context())
 	vehicles := slices.Collect(maps.Values(ks.GetDictVehicles()))
 	slices.Sort(vehicles)
 	return frontend.Page(frontend.Index(levels, vehicles))
+}
+
+func getSortedLevelStats(ctx context.Context) []frontend.LevelStat {
+	levelAmounts, err := ks.GetAmountsByLevel(ctx)
+	if err != nil {
+		log.Err(err).Msg("get amounts by level")
+		levelAmounts = map[string]int{}
+	}
+	levelNames := slices.Collect(maps.Keys(levelAmounts))
+	err = levelByColorSorter.Sort(levelNames)
+	if err != nil {
+		log.Err(err).Msg("sort")
+	}
+	levels := make([]frontend.LevelStat, 0, len(levelAmounts))
+	for _, levelName := range levelNames {
+		levels = append(levels, frontend.LevelStat{
+			Level:   levelName,
+			Samples: levelAmounts[levelName],
+		})
+	}
+	return levels
 }
 
 // func serveFrontendMapUpdate(w http.ResponseWriter, r *http.Request) templ.Component {
