@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/png"
 	"main/frontend"
+	"main/lib/caches"
 	"main/lib/imagecolorsort"
 	"main/lib/killstorage"
 	"main/lib/levelcoords"
@@ -67,23 +68,27 @@ var (
 		// log.Info().Str("id", id).Msg("colorguessing")
 		return imRGBA, nil
 	})
+	levelAmountsCache = caches.NewValueRefresh(6*time.Hour, func() map[string]int {
+		ret, err := ks.GetAmountsByLevel(context.Background())
+		if err != nil {
+			log.Err(err).Msg("get amounts by level")
+			ret = map[string]int{}
+		}
+		return ret
+	})
 )
 
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
-	levels := getSortedLevelStats(r.Context())
+	levels := getSortedLevelStats()
 	vehicles := slices.Collect(maps.Values(ks.GetDictVehicles()))
 	slices.Sort(vehicles)
 	return frontend.Page(frontend.Index(levels, vehicles))
 }
 
-func getSortedLevelStats(ctx context.Context) []frontend.LevelStat {
-	levelAmounts, err := ks.GetAmountsByLevel(ctx)
-	if err != nil {
-		log.Err(err).Msg("get amounts by level")
-		levelAmounts = map[string]int{}
-	}
+func getSortedLevelStats() []frontend.LevelStat {
+	levelAmounts := levelAmountsCache.Get()
 	levelNames := slices.Collect(maps.Keys(levelAmounts))
-	err = levelByColorSorter.Sort(levelNames)
+	err := levelByColorSorter.Sort(levelNames)
 	if err != nil {
 		log.Err(err).Msg("sort")
 	}

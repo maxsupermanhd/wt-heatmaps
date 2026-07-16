@@ -54,7 +54,7 @@ func main() {
 	stopIngest := goflexutils.StartBackgroundRoutine(log.Logger, "ingest", ingestRoutine)
 
 	go func() {
-		getSortedLevelStats(context.Background())
+		getSortedLevelStats()
 	}()
 
 	<-ctx.Done()
