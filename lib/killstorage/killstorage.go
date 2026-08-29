@@ -528,6 +528,12 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 		if killerTeam > 2 || victimTeam > 2 {
 			return ret, fmt.Errorf("victim or killer team oob %d %d", killerTeam, victimTeam)
 		}
+		if !strings.HasPrefix(strings.ToLower(kill.OffenderUnitId), "tankmodels/") {
+			continue
+		}
+		if !strings.HasPrefix(strings.ToLower(kill.OffendedUnitId), "tankmodels/") {
+			continue
+		}
 		ret = append(ret, Kill{
 			Session:       sessionID,
 			SessionTime:   uint64(carve.Light.StartTs),
