@@ -113,11 +113,11 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 			case websocket.TextFrame:
 				log.Info().Str("data", string(msg)).Msg("text frame")
 			case websocket.BinaryFrame:
-				log.Info().Int("data", len(msg)).Msg("binary frame")
-				timings := time.Now()
+				// log.Info().Int("data", len(msg)).Msg("binary frame")
+				// timings := time.Now()
 
 				msgDecompressed, errRead = zstd.Decompress(msgDecompressed, msg)
-				timingsDecomp := time.Since(timings)
+				// timingsDecomp := time.Since(timings)
 
 				if errRead != nil {
 					wsClose()
@@ -126,7 +126,7 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 
 				var m luxprotogen.Envelope
 
-				timings = time.Now()
+				// timings = time.Now()
 
 				errRead = proto.Unmarshal(msgDecompressed, &m)
 				if errRead != nil {
@@ -153,10 +153,10 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 					return
 				}
 
-				timingsParse := time.Since(timings)
-				log.Info().Str("timingsDecomp", timingsDecomp.Round(time.Nanosecond).String()).
-					Str("timingsParse", timingsParse.Round(time.Nanosecond).String()).
-					Int("len", len(msgDecompressed)).Msg("got battle report")
+				// timingsParse := time.Since(timings)
+				// log.Info().Str("timingsDecomp", timingsDecomp.Round(time.Nanosecond).String()).
+				// 	Str("timingsParse", timingsParse.Round(time.Nanosecond).String()).
+				// 	Int("len", len(msgDecompressed)).Msg("got battle report")
 
 				select {
 				case carvesChan <- &carve:
