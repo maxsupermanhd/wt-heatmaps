@@ -474,6 +474,23 @@ left join pg_catalog.pg_class as c on c.oid = kt.tn
 	return ret, err
 }
 
+func (s *KillsStorage) GetAmountsByVehicle(ctx context.Context) (map[string]int, error) {
+	rows, err := s.db.Query(ctx, `select vn.name, count(*) from kills left join vehicle_names as vn on vn.id = killer_vehicle group by vn.name`)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return map[string]int{}, nil
+		}
+	}
+	var name string
+	var c int
+	ret := map[string]int{}
+	_, err = pgx.ForEachRow(rows, []any{&name, &c}, func() error {
+		ret[name] = c
+		return nil
+	})
+	return ret, err
+}
+
 func (s *KillsStorage) Close() {
 	s.db.Close()
 }

@@ -176,20 +176,22 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 	<script type="module" src="/static/main.js"></script>
 }
 
+func BRString(i int) string {
+	rem := i % 3
+	switch rem {
+	case 1:
+		rem = 3
+	case 2:
+		rem = 7
+	}
+	return fmt.Sprintf("%d.%d", 1+i/3, rem)
+}
+
 templ brSelector(name string, battleRatingMax int) {
 	<select name={ name }>
 		<option selected></option>
 		for i := range battleRatingMax+1 {
-			{{
-				rem := i % 3
-				switch rem {
-				case 1:
-					rem = 3
-				case 2:
-					rem = 7
-				}
-			}}
-			<option value={ i }>{ fmt.Sprintf("%d.%d", 1+i/3, rem) }</option>
+			<option value={ i }>{ BRString(i) }</option>
 		}
 	</select>
 }

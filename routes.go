@@ -26,6 +26,7 @@ import (
 func makeHTTPServeMux() http.HandlerFunc {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", httpLog(handle404))
+	mux.HandleFunc("GET /robots.txt", httpLog(handleRobots))
 	mux.HandleFunc("GET /static/", httpLog(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP))
 	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), levelStatsSorted)))
 	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats), cachedStatsTables)))
@@ -95,7 +96,7 @@ func seveWaitroom(w http.ResponseWriter, r *http.Request) templ.Component {
 		return nil
 	}
 	w.Header().Add("Cache-Control", "no-store")
-	w.Header().Add("Refresh", "2")
+	w.Header().Add("Refresh", "4")
 	return frontend.Page(frontend.Waitroom())
 }
 
@@ -370,4 +371,9 @@ func servePermaRedirect(location string) func(w http.ResponseWriter, r *http.Req
 		w.Header().Add("Location", location)
 		w.WriteHeader(http.StatusMovedPermanently)
 	}
+}
+
+func handleRobots(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(200)
+	fmt.Fprint(w, "User-agent: *\nAllow: /\n")
 }

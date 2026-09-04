@@ -8,19 +8,39 @@ import (
 	"net/http"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/a-h/templ"
 	"github.com/rs/zerolog/log"
 )
 
-var cachedStatsTables = caches.NewValueRefresh(wb, 10*time.Minute, collectStatsTables)
+var cachedStatsTables = caches.NewValueRefresh(wb, 10*time.Minute, func() ([]frontend.StatsTable, error) {
+	return collectStatsTables(context.Background())
+})
 
-func collectStatsTables() ([]frontend.StatsTable, error) {
+func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 	ret := []frontend.StatsTable{}
-	byLevel, err := ks.GetAmountsByLevel(context.Background())
+	tables := []func(ctx context.Context) (*frontend.StatsTable, error){
+		statsGetByLevel,
+		statsGetByDay,
+		statsGetByBR,
+	}
+	for _, fn := range tables {
+		st, err := fn(ctx)
+		if err != nil {
+			continue
+		}
+		ret = append(ret, *st)
+	}
+	return ret, nil
+}
+
+func statsGetByLevel(ctx context.Context) (*frontend.StatsTable, error) {
+	byLevel, err := ks.GetAmountsByLevel(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by level")
+		return nil, err
 	}
 	byLevelMax := 0
 	for _, v := range byLevel {
@@ -34,15 +54,18 @@ func collectStatsTables() ([]frontend.StatsTable, error) {
 			frontend.StatElementFixedPercentBar(float64(k.Count) / float64(byLevelMax)),
 		})
 	}
-	ret = append(ret, frontend.StatsTable{
+	return &frontend.StatsTable{
 		Caption:      "Records by level",
 		ColumnLabels: []string{"Level", "Count"},
 		Rows:         byLevelRows,
-	})
+	}, nil
+}
 
-	byDay, err := ks.GetAmountsByDay(context.Background())
+func statsGetByDay(ctx context.Context) (*frontend.StatsTable, error) {
+	byDay, err := ks.GetAmountsByDay(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by day")
+		return nil, err
 	}
 	byDayMax := 0
 	for _, v := range byDay {
@@ -58,11 +81,48 @@ func collectStatsTables() ([]frontend.StatsTable, error) {
 			frontend.StatElementFixedPercentBar(float64(byDay[k]) / float64(byDayMax)),
 		})
 	}
-	ret = append(ret, frontend.StatsTable{
+	return &frontend.StatsTable{
 		Caption:      "Records by date",
 		ColumnLabels: []string{"Time (UTC)", "Count", ""},
 		Rows:         byDayRows,
-	})
+	}, nil
+}
+
+func statsGetByBR(ctx context.Context) (*frontend.StatsTable, error) {
+	byVehicle, err := ks.GetAmountsByVehicle(ctx)
+	if err != nil {
+		log.Err(err).Msg("cache update amounts by br")
+		return nil, err
+	}
+	vehicles := map[string]int{}
+	for br := range battleRatingGetter.GetRankMax() {
+		for _, v := range battleRatingGetter.GetAllByRank(br) {
+			vehicles[strings.TrimPrefix(v, "tankmodels/")] = br
+		}
+	}
+	byBR := map[int]int{}
+	for v, c := range byVehicle {
+		br, ok := vehicles[v]
+		if !ok {
+			continue
+		}
+		byBR[br] = byBR[br] + c
+	}
+	ret := &frontend.StatsTable{
+		Caption:      "Records by BR",
+		ColumnLabels: []string{"BR", "Count"},
+		Rows:         [][]templ.Component{},
+	}
+	byBRMax := 0
+	for _, v := range byBR {
+		byBRMax = max(byBRMax, v)
+	}
+	for k := range slices.Sorted(maps.Keys(byBR)) {
+		ret.Rows = append(ret.Rows, []templ.Component{
+			frontend.TextNode(frontend.BRString(k)),
+			frontend.StatElementFixedPercentBar(float64(byBR[k]) / float64(byBRMax)),
+		})
+	}
 	return ret, nil
 }
 
