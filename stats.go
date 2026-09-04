@@ -21,22 +21,22 @@ var cachedStatsTables = caches.NewValueRefresh(wb, 10*time.Minute, func() ([]fro
 
 func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 	ret := []frontend.StatsTable{}
-	tables := []func(ctx context.Context) (*frontend.StatsTable, error){
+	tables := []func(ctx context.Context) ([]frontend.StatsTable, error){
 		statsGetByLevel,
 		statsGetByDay,
-		statsGetByBR,
+		statsGetByVehicles,
 	}
 	for _, fn := range tables {
 		st, err := fn(ctx)
 		if err != nil {
 			continue
 		}
-		ret = append(ret, *st)
+		ret = append(ret, st...)
 	}
 	return ret, nil
 }
 
-func statsGetByLevel(ctx context.Context) (*frontend.StatsTable, error) {
+func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 	byLevel, err := ks.GetAmountsByLevel(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by level")
@@ -54,24 +54,32 @@ func statsGetByLevel(ctx context.Context) (*frontend.StatsTable, error) {
 			frontend.StatElementFixedPercentBar(float64(k.Count) / float64(byLevelMax)),
 		})
 	}
-	return &frontend.StatsTable{
+	return []frontend.StatsTable{{
 		Caption:      "Records by level",
 		ColumnLabels: []string{"Level", "Count"},
 		Rows:         byLevelRows,
-	}, nil
+	}}, nil
 }
 
-func statsGetByDay(ctx context.Context) (*frontend.StatsTable, error) {
+func statsGetByDay(ctx context.Context) ([]frontend.StatsTable, error) {
 	byDay, err := ks.GetAmountsByDay(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by day")
 		return nil, err
 	}
 	byDayMax := 0
+	total := 0
 	for _, v := range byDay {
+		total += v
 		byDayMax = max(byDayMax, v)
 	}
-	byDayRows := [][]templ.Component{}
+	byDayRows := [][]templ.Component{
+		[]templ.Component{
+			frontend.TextNode("Total"),
+			frontend.TextNode(strconv.Itoa(total)),
+			frontend.TextNode(""),
+		},
+	}
 	for _, k := range slices.SortedFunc(maps.Keys(byDay), func(a, b time.Time) int {
 		return b.Compare(a)
 	}) {
@@ -81,22 +89,22 @@ func statsGetByDay(ctx context.Context) (*frontend.StatsTable, error) {
 			frontend.StatElementFixedPercentBar(float64(byDay[k]) / float64(byDayMax)),
 		})
 	}
-	return &frontend.StatsTable{
+	return []frontend.StatsTable{{
 		Caption:      "Records by date",
 		ColumnLabels: []string{"Time (UTC)", "Count", ""},
 		Rows:         byDayRows,
-	}, nil
+	}}, nil
 }
 
-func statsGetByBR(ctx context.Context) (*frontend.StatsTable, error) {
-	byVehicle, err := ks.GetAmountsByVehicle(ctx)
+func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
+	byVehicle, err := ks.GetAmountsByKillerVehicle(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by br")
 		return nil, err
 	}
 	vehicles := map[string]int{}
-	for br := range battleRatingGetter.GetRankMax() {
-		for _, v := range battleRatingGetter.GetAllByRank(br) {
+	for br := range vehicleEconomyCatalog.GetRankMax() {
+		for _, v := range vehicleEconomyCatalog.GetAllByRank(br) {
 			vehicles[strings.TrimPrefix(v, "tankmodels/")] = br
 		}
 	}
@@ -108,9 +116,9 @@ func statsGetByBR(ctx context.Context) (*frontend.StatsTable, error) {
 		}
 		byBR[br] = byBR[br] + c
 	}
-	ret := &frontend.StatsTable{
-		Caption:      "Records by BR",
-		ColumnLabels: []string{"BR", "Count"},
+	tableByBR := frontend.StatsTable{
+		Caption:      "Records by killer BR",
+		ColumnLabels: []string{"BR", "Count", ""},
 		Rows:         [][]templ.Component{},
 	}
 	byBRMax := 0
@@ -118,12 +126,43 @@ func statsGetByBR(ctx context.Context) (*frontend.StatsTable, error) {
 		byBRMax = max(byBRMax, v)
 	}
 	for k := range slices.Sorted(maps.Keys(byBR)) {
-		ret.Rows = append(ret.Rows, []templ.Component{
+		tableByBR.Rows = append(tableByBR.Rows, []templ.Component{
 			frontend.TextNode(frontend.BRString(k)),
+			frontend.TextNode(strconv.Itoa(byBR[k])),
 			frontend.StatElementFixedPercentBar(float64(byBR[k]) / float64(byBRMax)),
 		})
 	}
-	return ret, nil
+	tableByVehicles := frontend.StatsTable{
+		Caption:      "Records by killer vehicles",
+		ColumnLabels: []string{"Vehicle", "BR", "Count"},
+		Rows:         [][]templ.Component{},
+	}
+	type vehiclePair struct {
+		name  string
+		count int
+	}
+	vehiclesSlice := []vehiclePair{}
+	for v, c := range byVehicle {
+		vehiclesSlice = append(vehiclesSlice, vehiclePair{
+			name:  v,
+			count: c,
+		})
+	}
+	slices.SortFunc(vehiclesSlice, func(a, b vehiclePair) int {
+		return b.count - a.count
+	})
+	if len(vehiclesSlice) > 100 {
+		vehiclesSlice = vehiclesSlice[:100]
+	}
+	for _, vp := range vehiclesSlice {
+		name := strings.TrimPrefix(vp.name, "tankmodels/")
+		tableByVehicles.Rows = append(tableByVehicles.Rows, []templ.Component{
+			frontend.VehicleLabel(frontendVehicle(name, vehicleEconomyCatalog.Vehicles[name])),
+			frontend.TextNode(frontend.BRString(vehicles[name])),
+			frontend.TextNode(strconv.Itoa(vp.count)),
+		})
+	}
+	return []frontend.StatsTable{tableByBR, tableByVehicles}, nil
 }
 
 func serveStats(_ http.ResponseWriter, _ *http.Request) templ.Component {

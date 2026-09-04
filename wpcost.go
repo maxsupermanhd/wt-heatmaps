@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"main/frontend"
 	"main/lib/wt"
 	"net/http"
 	"os"
@@ -10,19 +11,33 @@ import (
 )
 
 var (
-	battleRatingGetter wt.BattleRatingGetter
+	vehicleEconomyCatalog wt.VehicleEconomyCatalog
 )
+
+func frontendVehicle(id string, v *wt.WpcostVehicle) frontend.Vehicle {
+	if v == nil {
+		return frontend.Vehicle{
+			ID: id,
+		}
+	}
+	return frontend.Vehicle{
+		ID:        id,
+		Rank:      v.EconomicRankHistorical,
+		IsPremium: v.IsPremium(),
+		IsEvent:   v.IsEvent(),
+	}
+}
 
 func wpcostLoad() error {
 	cacheFilePath := "cache/wpcost.json"
 	f, err := os.Open(cacheFilePath)
 	if err == nil {
-		tmp, err := wt.NewBattleRatingGetter(f)
+		tmp, err := wt.NewVehicleEconomyCatalog(f)
 		f.Close()
 		if err != nil {
 			return err
 		}
-		battleRatingGetter = *tmp
+		vehicleEconomyCatalog = *tmp
 		return nil
 	}
 	err = os.MkdirAll(filepath.Dir(cacheFilePath), 0766)
@@ -45,7 +60,7 @@ func wpcostLoad() error {
 	}
 	defer os.Remove(f.Name())
 	r := io.TeeReader(rsp.Body, f)
-	tmp, err := wt.NewBattleRatingGetter(r)
+	tmp, err := wt.NewVehicleEconomyCatalog(r)
 	if err != nil {
 		f.Close()
 		return err
@@ -63,6 +78,6 @@ func wpcostLoad() error {
 	if err != nil {
 		return err
 	}
-	battleRatingGetter = *tmp
+	vehicleEconomyCatalog = *tmp
 	return nil
 }

@@ -104,7 +104,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 	levels, _ := levelStatsSorted.Get()
 	vehicles := slices.Collect(maps.Values(ks.GetDictVehicles()))
 	slices.Sort(vehicles)
-	return frontend.Page(frontend.Index(levels, battleRatingGetter.GetRankMax()))
+	return frontend.Page(frontend.Index(levels, vehicleEconomyCatalog.GetRankMax()))
 }
 
 func serveHeat(w http.ResponseWriter, r *http.Request) {
@@ -188,13 +188,13 @@ func buildKillQuery(q url.Values, level string) (*killstorage.QueryConditions, b
 	if val := urlValueInt(q, "killTimeMax"); val != nil {
 		kq.QueryWithKillTimeMax(time.Duration(*val) * time.Second)
 	}
-	if val := battleRatingGetter.GetAllInRange(urlValueInt(q, "killerBattleRatingMin"), urlValueInt(q, "killerBattleRatingMax")); val != nil {
+	if val := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "killerBattleRatingMin"), urlValueInt(q, "killerBattleRatingMax")); val != nil {
 		for i := range val {
 			val[i] = "tankmodels/" + val[i]
 		}
 		ks.QueryWithKillerVehicles(kq, val)
 	}
-	if val := battleRatingGetter.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax")); val != nil {
+	if val := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax")); val != nil {
 		for i := range val {
 			val[i] = "tankmodels/" + val[i]
 		}
@@ -239,8 +239,9 @@ func serveAreaStats(w http.ResponseWriter, r *http.Request) templ.Component {
 	rows := make([]frontend.AreaVehicleStat, len(stats))
 	total := 0
 	for i, v := range stats {
+		vehicleName := strings.TrimPrefix(v.Vehicle, "tankmodels/")
 		rows[i] = frontend.AreaVehicleStat{
-			Vehicle: strings.TrimPrefix(v.Vehicle, "tankmodels/"),
+			Vehicle: frontendVehicle(vehicleName, vehicleEconomyCatalog.Vehicles[vehicleName]),
 			Kills:   v.Kills,
 			Deaths:  v.Deaths,
 		}

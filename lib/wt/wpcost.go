@@ -7,18 +7,33 @@ import (
 	"slices"
 )
 
-type wpcostVehicle struct {
-	EconomicRankHistorical int `json:"economicRankHistorical"`
+type WpcostVehicle struct {
+	EconomicRankHistorical int    `json:"economicRankHistorical"`
+	CostGold               int    `json:"costGold"`
+	Event                  string `json:"event"`
 }
 
-func (val *wpcostVehicle) UnmarshalJSON(b []byte) error {
+func (v WpcostVehicle) IsPremium() bool {
+	return v.CostGold > 0
+}
+
+func (v WpcostVehicle) IsEvent() bool {
+	return v.Event != ""
+}
+
+func (val *WpcostVehicle) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 {
+		return nil
+	}
+	if val == nil {
 		return nil
 	}
 	switch b[0] {
 	case '{':
 		type tmp struct {
-			EconomicRankHistorical int `json:"economicRankHistorical"`
+			EconomicRankHistorical int    `json:"economicRankHistorical"`
+			CostGold               int    `json:"costGold"`
+			Event                  string `json:"event"`
 		}
 		var tmpval tmp
 		err := json.Unmarshal(b, &tmpval)
@@ -26,6 +41,8 @@ func (val *wpcostVehicle) UnmarshalJSON(b []byte) error {
 			return err
 		}
 		val.EconomicRankHistorical = tmpval.EconomicRankHistorical
+		val.CostGold = tmpval.CostGold
+		val.Event = tmpval.Event
 	default:
 		var tmpval int
 		err := json.Unmarshal(b, &tmpval)
@@ -37,13 +54,14 @@ func (val *wpcostVehicle) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-type BattleRatingGetter struct {
+type VehicleEconomyCatalog struct {
+	Vehicles       map[string]*WpcostVehicle
 	byBattleRating [][]string
 	rankMax        int
 }
 
-func NewBattleRatingGetter(wpcostJsonReader io.Reader) (*BattleRatingGetter, error) {
-	var wpcost map[string]wpcostVehicle
+func NewVehicleEconomyCatalog(wpcostJsonReader io.Reader) (*VehicleEconomyCatalog, error) {
+	var wpcost map[string]*WpcostVehicle
 	err := json.NewDecoder(wpcostJsonReader).Decode(&wpcost)
 	if err != nil {
 		return nil, err
@@ -52,11 +70,9 @@ func NewBattleRatingGetter(wpcostJsonReader io.Reader) (*BattleRatingGetter, err
 	if !ok {
 		return nil, errors.New("economicRankMax not found in json")
 	}
+	delete(wpcost, "economicRankMax")
 	byBattleRating := make([][]string, rankMax.EconomicRankHistorical+1)
 	for k, v := range wpcost {
-		if k == "economicRankMax" {
-			continue
-		}
 		if v.EconomicRankHistorical < 0 || v.EconomicRankHistorical >= len(byBattleRating) {
 			continue
 		}
@@ -68,14 +84,15 @@ func NewBattleRatingGetter(wpcostJsonReader io.Reader) (*BattleRatingGetter, err
 		}
 		slices.Sort(byBattleRating[i])
 	}
-	ret := &BattleRatingGetter{
+	ret := &VehicleEconomyCatalog{
+		Vehicles:       wpcost,
 		byBattleRating: byBattleRating,
 		rankMax:        rankMax.EconomicRankHistorical,
 	}
 	return ret, nil
 }
 
-func (brg *BattleRatingGetter) GetAllByRank(rank int) []string {
+func (brg *VehicleEconomyCatalog) GetAllByRank(rank int) []string {
 	if rank < 0 {
 		return nil
 	}
@@ -85,11 +102,11 @@ func (brg *BattleRatingGetter) GetAllByRank(rank int) []string {
 	return brg.byBattleRating[rank]
 }
 
-func (brg *BattleRatingGetter) GetRankMax() int {
+func (brg *VehicleEconomyCatalog) GetRankMax() int {
 	return brg.rankMax
 }
 
-func (brg *BattleRatingGetter) GetAllInRange(brminp, brmaxp *int) []string {
+func (brg *VehicleEconomyCatalog) GetAllInRange(brminp, brmaxp *int) []string {
 	if brminp == nil && brmaxp == nil {
 		return nil
 	}

@@ -196,8 +196,15 @@ templ brSelector(name string, battleRatingMax int) {
 	</select>
 }
 
+type Vehicle struct {
+	ID        string
+	Rank      int
+	IsPremium bool
+	IsEvent   bool
+}
+
 type AreaVehicleStat struct {
-	Vehicle string
+	Vehicle Vehicle
 	Kills   int
 	Deaths  int
 }
@@ -244,8 +251,7 @@ templ AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit
 				for _, v := range stats {
 					<tr>
 						<td>
-							<img class="vehicleIcon" src={ "https://static.encyclopedia.warthunder.com/slots/" + v.Vehicle + ".png" } alt="" loading="lazy" onerror="this.remove()"/>
-							<a href={ "https://wiki.warthunder.com/unit/" + v.Vehicle } target="_blank">{ v.Vehicle }</a>
+							@VehicleLabel(v.Vehicle)
 						</td>
 						<td>{ v.Kills }</td>
 						<td>{ v.Deaths }</td>
@@ -256,6 +262,20 @@ templ AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit
 			</tbody>
 		</table>
 	}
+}
+
+templ VehicleLabel(v Vehicle) {
+	<img class="vehicleIcon" src={ "https://static.encyclopedia.warthunder.com/slots/" + v.ID + ".png" } alt="" loading="lazy" onerror="this.remove()"/>
+	if v.IsPremium {
+		<img class="vehicleIcon" src="https://static.encyclopedia.warthunder.com/gui_skin/item_type_talisman.svg" alt="" loading="lazy" onerror="this.remove()"/>
+	}
+	<a href={ "https://wiki.warthunder.com/unit/" + v.ID } target="_blank">
+		if v.IsEvent {
+			<i> { v.ID } </i>
+		} else {
+			{ v.ID }
+		}
+	</a>
 }
 
 type StatsTable struct {
