@@ -1,19 +1,34 @@
 syntax = "proto3";
 
-package wt.v1;
+package wt.v2;
 
 option go_package = "./luxprotogen";
 
-// War Thunder replay schema, version 1. Published at /schemas/v1/replay.proto.
-// Each version lives in its own directory and never changes once published.
+// War Thunder replay schema, version 2. Published at /schemas/v2/replay.proto.
+// Each version lives in its own directory and never changes once published, so a body
+// is only ever read with the schema of the version its envelope names.
 //
 // Two messages describe one battle:
-//   LightReplay — the header: battle metadata and scoreboard.
-//   Replay      — the full object: the header plus every heavy section (chat, events,
-//                 trajectories). Both are carried in Envelope.body.
+//   LightReplay — the header alone: the battle fields and the scoreboard.
+//   Replay      — the full object: the same header plus every heavy section (chat,
+//                 events, trajectories).
+// Either travels wrapped in Envelope, which names which of the two the body is.
 //
 // Fields that classify a value — difficulty, chat/damage/projectile type — are plain
-// strings (open sets). Enums may be introduced in a later schema version.
+// strings on purpose: their sets grow, and an enum would drop values it was not built
+// with. Enums may be introduced in a later schema version.
+//
+// A vehicle id is the internal in-game name of the machine, and a ground vehicle carries
+// the tankModels/ prefix wherever such an id appears - entities, kills, hits, damage,
+// shots, projectiles alike. The display name next to it is what the game shows, and it
+// is empty when the game names that machine nowhere.
+//
+// An empty repeated field always means the data is absent rather than zero, and each
+// field says what its absence stands for. Coordinate tuples are the exception that
+// proves it: they are either their full length or empty, never partial.
+//
+// A section can also be empty because it could not be read for this battle, and the
+// message does not distinguish that from a section that had nothing to report.
 //
 // Decoding channels:
 //   every repeated numeric channel is delta encoded from zero, so the absolute
@@ -31,7 +46,7 @@ message Envelope {
   bytes  body           = 3;  // Serialized body of that version, of the type named by kind.
 }
 
-// The replay header.
+// The replay header: the battle fields and the scoreboard, without any heavy section.
 message LightReplay {
   string id           = 1;   // Replay identifier, unique per battle.
   string type         = 2;   // Battle type: sqb | tss | random.
@@ -49,17 +64,27 @@ message LightReplay {
   uint32 winner_team = 13;  // Winning team number, 1 or 2. Zero on a draw.
   uint32 loser_team  = 14;  // Losing team number, 1 or 2. Zero on a draw.
   // Squadron tags of the two teams. Present only in squadron battles, where a team is
-  // one squadron; in other modes every player carries their own tag instead. On a draw,
-  // team 1's tag is in winner_tag and team 2's in loser_tag.
+  // one squadron; in other modes every player carries their own tag instead. Set even
+  // on a draw (as team-1 and team-2 tags) so a drawn battle stays findable by tag.
+  //
+  // Two values are not tags. The field can hold the team number as a string ("1" or
+  // "2") when no squadron tag was found for that team, the same placeholder players[].tag
+  // carries; and it can be present and empty when the battle is a squadron one but the
+  // tag resolved to nothing.
   optional string winner_tag = 15;
   optional string loser_tag  = 16;
 
-  repeated ClanElo clan_elo = 17;  // Squadron points for the battle, one entry per squadron.
+  // Squadron points for the battle, one entry per squadron. Empty in every mode but
+  // squadron battles, and empty there too whenever the rating was not computed - the
+  // squadron was not resolved, or the points did not arrive.
+  repeated ClanElo clan_elo = 17;
 
-  // Processing metadata.
+  // How far the replay got. These four, and equally cluster, tss, clan_elo and
+  // players[].elo, do not come from the replay file itself, so a battle that has not
+  // been through to the end carries them empty.
   string status = 18;  // pending | in_progress | completed | failed.
-  uint32 ttp    = 19;  // Seconds spent processing.
-  int32  delay  = 20;  // Seconds between the battle ending and it being processed.
+  uint32 ttp    = 19;  // Seconds spent parsing.
+  int32  delay  = 20;  // Seconds between the end of the battle and its parsing.
   string detail = 21;  // Failure reason: "Downloading error" | "Parsing error". failed only.
 
   Tss tss = 22;  // Tournament data. tss battles only.
@@ -67,22 +92,65 @@ message LightReplay {
   repeated Player players = 23;  // Scoreboard, one entry per player.
 }
 
+// Geometry of the map the battle was fought on, taken from the level file of the game
+// rather than from the replay. It is what places the world coordinates of every other
+// section onto a map image.
+message MapInfo {
+  // Extent of the tank minimap: [x, z] of two opposite corners, metres, world frame.
+  // Ground battles are drawn in this rectangle. Empty on air only levels, which define
+  // no tank frame at all.
+  repeated float tank_coord0 = 1;
+  repeated float tank_coord1 = 2;
+  // Map bounds as the level file declares them, the frame air battles are flown in.
+  // Same form. Read it as a declared bound rather than a measured extent: a level
+  // states a box, and aircraft stay well inside it. Empty when the level states none.
+  repeated float coord0 = 3;
+  repeated float coord1 = 4;
+  // Sea level of the map, metres. Altitude of a ground vehicle is packed relative to
+  // it, so entities[].y of a tankModels/ unit, and both positions of a kill on one, sit
+  // this much below the frame aircraft, projectiles and zone centres are in: add it to
+  // bring them together, to within about two metres. Aircraft altitude needs nothing.
+  //
+  // Optional because zero is a real sea level, not a missing one. Absent means the
+  // level file states none.
+  optional float sea_level = 5;
+  //
+  // One caveat for the whole message: these values come from the level file of the
+  // game, not from the replay, so all five are equally empty when that file was not
+  // available - a map newer than the game data at hand. Empty therefore means either
+  // "the level does not state it" or "the level could not be read".
+}
+
 // One battle in full: the header plus every heavy section.
 message Replay {
-  LightReplay light = 1;  // The header.
+  LightReplay light = 1;  // The header, the same message served on its own.
 
   uint32 pos_quant = 2;  // Divisor for every position channel: value / pos_quant = metres.
   uint32 ang_quant = 3;  // Divisor for every angle channel: value / ang_quant = radians.
+  // Geometry of the map, from the level file of the game. Sits here rather than in the
+  // header for the same reason the quantizers do: it describes the heavy sections, and
+  // is of no use without them.
+  MapInfo map      = 4;
 
-  repeated ChatLine     chat          = 4;   // Chat messages, in order.
-  repeated Kill         kills         = 5;
-  repeated Damage       damage        = 6;
+  repeated ChatLine     chat          = 5;   // Chat messages, in order.
+  repeated Kill         kills         = 6;   // Vehicle deaths, from the battle report.
   repeated Award        awards        = 7;
   repeated Interception interceptions = 8;
   repeated Entity       entities      = 9;   // Unit trajectories, one entry per spawned vehicle.
-  repeated Projectile   projectiles   = 10;  // Bomb and rocket trajectories.
+  // Munitions that left a launcher as an object of their own: bombs, rockets and
+  // guided missiles. Countermeasures and smoke grenades spawn the same kind of object
+  // and are left out: dispensing them is not combat.
+  repeated Projectile   projectiles   = 10;
   repeated Zone         zones         = 11;  // Capture zones.
-  Tickets               tickets       = 12;  // Ticket history of both teams.
+  // Ticket history, one entry per team that has one. A team whose history never
+  // arrived is missing from the list rather than present and empty.
+  repeated TeamTickets  tickets       = 12;
+  repeated Hit          hits          = 13;  // Every projectile impact on a vehicle.
+  repeated Shot         shots         = 14;  // Gun shots and trigger presses.
+  // Severe and critical damage as the kill feed reports it: what the player was told,
+  // in the words the game used. Coarser than hits[] - two grades, no munition, no
+  // parts - and it reports impacts hits[] already carries in detail.
+  repeated Damage       damage        = 15;
 }
 
 message Tss {
@@ -134,15 +202,17 @@ message Elo {
 
 message ClanElo {
   string tag   = 1;  // Full squadron tag, brackets included.
-  sint32 start = 2;  // Squadron points before the battle. Signed: a total can be negative.
-  sint32 end   = 3;  // Squadron points after the battle. Signed: a total can be negative.
+  // Signed: member ratings are summed as they come, negative ones included, so a
+  // squadron total can go below zero.
+  sint32 start = 2;  // Squadron points before the battle.
+  sint32 end   = 3;  // Squadron points after the battle.
 }
 
 // One vehicle in a player's lineup.
 message Unit {
   bool   used         = 1;  // True when the player spawned in this vehicle.
   string unit_id      = 2;  // Internal in-game id, e.g. us_m1_abrams.
-  string unit_name    = 3;  // Display name; falls back to unit_id when untranslated.
+  string unit_name    = 3;  // Display name. Empty when the game names the vehicle nowhere.
   string unit_type    = 4;  // tank | aircraft | helicopter | ship | ...
   string unit_class   = 5;  // Vehicle class, e.g. medium tank, fighter.
   string unit_country = 6;  // Country of origin, e.g. usa.
@@ -152,26 +222,35 @@ message Unit {
 // Trajectory of one spawned vehicle, on three independent time axes: t for the
 // hull, view_t for the camera, turret_t for gun aiming.
 message Entity {
-  string uid     = 1;  // Owner player uid, "0" when none.
-  string unit_id = 2;  // Internal in-game id; ground vehicles carry the tankModels/ prefix.
+  string uid       = 1;  // Owner player uid, "0" when none.
+  string unit_id   = 2;  // Internal in-game id; ground vehicles carry the tankModels/ prefix.
+  string unit_name = 3;  // Vehicle display name, empty when the game names it nowhere.
 
-  repeated sint32 t          = 3;  // Time deltas of the hull channels, ms.
-  repeated sint32 x          = 4;  // X deltas.
-  repeated sint32 y          = 5;  // Y deltas. Y is altitude.
-  repeated sint32 z          = 6;  // Z deltas.
-  repeated sint32 hull_yaw   = 7;  // Hull yaw deltas, on the t axis.
-  repeated sint32 hull_pitch = 8;  // Hull pitch deltas, on the t axis.
-  repeated sint32 hull_roll  = 9;  // Hull roll deltas, on the t axis.
+  repeated sint32 t          = 4;  // Time deltas of the hull channels, ms.
+  repeated sint32 x          = 5;  // X deltas.
+  // Y deltas. Y is altitude - but a ground vehicle is measured from the sea level of
+  // the map rather than from zero: add map.sea_level to compare it with an
+  // aircraft, a projectile or a zone centre.
+  repeated sint32 y          = 6;
+  repeated sint32 z          = 7;  // Z deltas.
+  repeated sint32 hull_yaw   = 8;  // Hull yaw deltas, on the t axis.
+  repeated sint32 hull_pitch = 9;  // Hull pitch deltas, on the t axis.
+  repeated sint32 hull_roll  = 10;  // Hull roll deltas, on the t axis.
 
-  repeated sint32 view_t    = 10;  // Time deltas of the camera channels, ms. Empty when the replay has no camera data.
-  repeated sint32 cam_yaw   = 11;  // Camera yaw deltas, on the view_t axis. Within +-pi.
-  repeated sint32 cam_pitch = 12;  // Camera pitch deltas, on the view_t axis.
-  repeated sint32 cam_roll  = 13;  // Camera roll deltas, on the view_t axis. Within +-pi/2.
-  repeated sint32 aim_yaw   = 14;  // Yaw of the aiming reticle, on the view_t axis. Where the guns are told to converge, not where they are.
-  repeated sint32 aim_pitch = 15;  // Pitch of the aiming reticle, on the view_t axis.
+  repeated sint32 view_t    = 11;  // Time deltas of the camera channels, ms. Empty when the replay has no camera data.
+  repeated sint32 cam_yaw   = 12;  // Camera yaw deltas, on the view_t axis. Within +-pi.
+  repeated sint32 cam_pitch = 13;  // Camera pitch deltas, on the view_t axis.
+  repeated sint32 cam_roll  = 14;  // Camera roll deltas, on the view_t axis. Within +-pi/2.
+  // Aiming reticle on the view_t axis: where the guns are told to converge, not where
+  // they are. In a free look the reticle stays put while the camera moves off it.
+  repeated sint32 aim_yaw   = 15;
+  repeated sint32 aim_pitch = 16;
 
-  repeated sint32 turret_t  = 16;  // Time deltas of the gun aiming channels, ms. Shared by every gun of this vehicle.
-  repeated Weapon weapons   = 17;  // Aiming angles, one entry per gun. Ground vehicles only.
+  repeated sint32 turret_t  = 17;  // Time deltas of the gun aiming channels, ms. Shared by every gun of this vehicle.
+  // One entry per barrel of the vehicle. Aiming channels are filled only where the
+  // game streams turret angles, which is ground vehicles; an aircraft barrel gets a
+  // record with its bone and name and no channels, so a shot can still be joined to it.
+  repeated Weapon weapons   = 18;
 }
 
 // Aiming angles of one gun, on the turret_t axis of the owning entity. Angles are
@@ -183,73 +262,267 @@ message Weapon {
   // Unique within a vehicle: two records with the same gun_id differ only by this.
   string mount                 = 1;
   string gun_id                = 2;  // Internal in-game id of the barrel or launcher.
-  string gun_name              = 3;  // Display name; falls back to gun_id when untranslated.
+  string gun_name              = 3;  // Short display name, e.g. BK27. Empty when the game names it nowhere.
   repeated sint32 turret_yaw   = 4;  // Turret heading deltas.
   repeated sint32 turret_pitch = 5;  // Turret pitch deltas.
   repeated sint32 gun_pitch    = 6;  // Gun elevation deltas.
 }
 
-// Flight path of one bomb or rocket.
+// One store that left a launcher, and where it went.
 message Projectile {
-  string uid         = 1;  // Owner player uid, "0" when unknown.
-  string unit_id     = 2;  // Internal id of the vehicle it was fired from.
-  string type        = 3;  // bomb | rocket | ...
-  string weapon_id   = 4;  // Internal in-game id of the munition, e.g. fr_ss_11.
-  string weapon_name = 5;  // Short display name, e.g. AIM-9B; falls back to weapon_id.
+  string uid       = 1;  // Owner player uid, "0" when unknown.
+  string unit_id   = 2;  // Internal id of the vehicle it was fired from.
+  string unit_name = 3;  // That vehicle's display name.
+  string type        = 4;  // What the game itself calls this store: bomb | rocket.
+  string weapon_id   = 5;  // Internal in-game id of the munition, e.g. fr_ss_11.
+  string weapon_name = 6;  // Short display name, e.g. AIM-9B. Empty when the game names none.
 
-  repeated sint32 t     = 6;   // Time deltas, ms.
-  repeated sint32 x     = 7;
-  repeated sint32 y     = 8;   // Y is altitude.
-  repeated sint32 z     = 9;
-  repeated sint32 yaw   = 10;  // Projectile yaw deltas, on the t axis.
-  repeated sint32 pitch = 11;
-  repeated sint32 roll  = 12;
+  // Trajectory. The server streams it for guided munitions and sends nothing for the
+  // rest, whose flight is deterministic; those are integrated from the state the store
+  // left the launcher with, sampled every 100 ms plus the end point. A munition whose
+  // entity carries no end time gets a single sample - the point and direction it
+  // launched at - because there is nothing to integrate up to; that one sample carries
+  // no direction at all when the store left the launcher at rest, so on a single-sample
+  // track yaw and pitch may be empty while x, y and z are not.
+  repeated sint32 t     = 7;   // Time deltas, ms.
+  repeated sint32 x     = 8;
+  repeated sint32 y     = 9;   // Y is altitude.
+  repeated sint32 z     = 10;
+  repeated sint32 yaw   = 11;  // Projectile yaw deltas, on the t axis.
+  repeated sint32 pitch = 12;
+  repeated sint32 roll  = 13;  // Empty unless the server streamed the track.
 }
 
+// One vehicle death, as the battle reports it. A death is its own event and not a
+// consequence of a hit: hits[] says what a round broke, not that the target died, and
+// a death may have no hit behind it at all - a ram, a crash, a player leaving the
+// vehicle.
 message Kill {
-  string          offender_uid     = 1;  // Killer uid, "0" when crashed.
-  string          offender_unit_id = 2;  // Killer vehicle id, empty when crashed.
-  repeated sint32 offender_pos     = 3;  // Killer position (x, y, z), metres * pos_quant. Absolute, not delta encoded.
-  // Munition id: a shell id for guns (152mm_xm578e1), a missile id for missiles
-  // (fr_ss_11). Two special values: artillery for an artillery strike, and an
-  // empty string for a ram.
-  string          used_weapon_id   = 4;
-  string          offended_uid     = 5;  // Victim uid.
-  string          offended_unit_id = 6;  // Victim vehicle id.
-  repeated sint32 offended_pos     = 7;  // Victim position (x, y, z), metres * pos_quant.
-  bool            crashed          = 8;  // True when the victim died with no opponent involved.
-  uint32          time             = 9;  // Battle time, ms.
+  string          offender_uid      = 1;  // Killer uid, "0" when crashed.
+  string          offender_unit_id  = 2;  // Killer vehicle id, empty when crashed.
+  string          offender_unit_name = 3;  // Killer vehicle display name.
+  // Killer position (x, y, z), metres * pos_quant. Absolute, not delta encoded.
+  // Absent when the kill names no killer, rather than reading as the map origin.
+  // Altitude carries the same offset as entities[].y: a ground vehicle is measured
+  // from map.sea_level.
+  repeated sint32 offender_pos     = 4;
+  // Munition that made the kill: a shell id for guns (152mm_xm578e1), a missile id
+  // for missiles (fr_ss_11), artillery for an artillery strike. Empty when the report
+  // names no weapon - a death by fire some time after the hit, or a death with no
+  // opponent. The name is empty for the round types the game does not name one by one,
+  // which is every round inside a belt.
+  string          used_weapon_id   = 5;
+  string          used_weapon_name = 6;
+  string          offended_uid     = 7;  // Victim uid.
+  string          offended_unit_id = 8;  // Victim vehicle id.
+  string          offended_unit_name = 9;  // Victim vehicle display name.
+  // Victim position (x, y, z), metres * pos_quant. Carries the same altitude offset
+  // as offender_pos: a ground vehicle is measured from map.sea_level.
+  repeated sint32 offended_pos     = 10;
+  bool            crashed          = 11;  // True when the victim died with no opponent involved.
+  uint32          time             = 12;  // Battle time, ms.
+  // Munition class of the killing weapon: bullet | bomb | rocket | torpedo. Empty
+  // exactly where used_weapon_id is: a death by fire some time after the hit, or a
+  // death with no opponent at all.
+  string          weapon_type      = 13;
+  // How the vehicle died. The index is the game's own number for the reason, which
+  // indexes its list of them and holds between battles; the id is the key that list
+  // gives it (crewDeath, ammoFire, machOverspeed), the name what the game shows for it
+  // (Crew knocked out). All three empty when the report does not say, which a zero
+  // index is: the field is written even where nothing died.
+  sint32          death_reason_idx  = 14;
+  string          death_reason_id   = 15;
+  string          death_reason_name = 16;
 }
 
+
+// One part of a vehicle damage model, named where it is mentioned.
+message DamagePart {
+  uint32 part_idx  = 1;  // Id the server numbers this part with, within the victim model.
+  string part_id   = 2;  // Model node id, e.g. ammo_body_21_dm.
+  // Display name, e.g. Ammo, Fuel tank, Explosive reactive armor. Empty when the game
+  // names the part nowhere - armour plates, external stowage, wheels - rather than
+  // echoing part_id or borrowing the name of the armour class around it.
+  string part_name = 3;
+}
+
+
+// One damage report of the battle feed, the line the player sees in the corner.
+// Coarser than a hit: two grades, no munition, no parts.
 message Damage {
-  string offender_uid     = 1;  // Damage dealer uid, "0" when unknown.
-  string offender_unit_id = 2;  // Damage dealer vehicle id. Often empty even when offender_uid is known.
-  string offended_uid     = 3;  // Damaged player uid.
-  string offended_unit_id = 4;  // Damaged vehicle id.
-  string type             = 5;  // severe | critical | ...
-  optional bool afire     = 6;  // Target set on fire. Critical damage only.
-  uint32 time             = 7;  // Battle time, ms.
+  string offender_uid       = 1;  // Damage dealer uid, "0" when unknown.
+  string offender_unit_id  = 2;  // Damage dealer vehicle id. Often empty even when the uid is known.
+  string offender_unit_name = 3;  // Damage dealer vehicle display name.
+  string offended_uid      = 4;  // Damaged player uid.
+  string offended_unit_id  = 5;  // Damaged vehicle id.
+  string offended_unit_name = 6;  // Damaged vehicle display name.
+  string type              = 7;  // severe | critical
+  optional bool afire      = 8;  // Target set on fire. Critical damage only.
+  uint32 time              = 9;  // Battle time, ms.
+}
+
+
+// One projectile impact on a vehicle. Every impact is here, including harmless ones.
+//
+// It answers four questions and no more: who hit, whom, with what, and what it did.
+// Where the round struck and where it flew is not here; entities[] carries the tracks
+// of both vehicles at that moment.
+//
+// The game reports an impact in several parts - the impact itself, the damage, the
+// blast, the hit camera record - and not every part is reported for every impact. A
+// field whose part was not reported stays unset.
+message Hit {
+  uint32 time              = 1;   // Battle time, ms.
+  string offender_uid      = 2;   // Shooter uid, "0" when unknown.
+  string offender_unit_id  = 3;   // Shooter vehicle id.
+  string offender_unit_name = 4;  // Shooter vehicle display name, empty when the game names it nowhere.
+  string offended_uid      = 5;   // Hit player uid.
+  string offended_unit_id  = 6;   // Hit vehicle id.
+  string offended_unit_name = 7;  // Hit vehicle display name.
+  // What hit: the shell of a cannon, the belt of a machine gun. Same pair as in
+  // shots[]. Empty when it could not be named without guessing.
+  string ammo_id           = 8;
+  string ammo_name         = 9;   // Display name. Empty when the game names the ammo nowhere.
+
+  // The round at the moment it struck. Not reported for every impact, and absent when
+  // it was not - that is why these are optional, so a missing report does not read as a
+  // round that stood still.
+  optional float speed           = 10;  // Speed at impact, m/s.
+  optional float travel_distance = 11;  // Distance the round travelled, m.
+
+  // Whether damage was reported for this round. One round delivers damage several
+  // times, and the extra deliveries are what the first one set off rather than further
+  // rounds, so they are folded into this one record.
+  //
+  // Read it as "damage was reported" and not as the physics: a round can go through
+  // armour and still carry damaging = false. The kill flag below is chosen among
+  // candidates the same way, so killed = true with damaging = false happens too. A fire
+  // that kills some time later is not in here at all - that death shows up in kills[]
+  // as death_reason_id, and the hit that started it carries fire below.
+  bool damaging = 12;
+  // Damage model crit, not the critical hit line the kill feed shows: the two are
+  // different things, so read it as a property of the damage rather than the message
+  // the player saw. Absent when the round did no damage at all.
+  optional bool crit = 13;
+
+  // The round went off next to the victim. False also when a blast was reported but
+  // carried no usable projectile id and so could not be tied to a round.
+  bool exploded = 14;
+
+  // What the hit did, decoded from the hit camera record the game builds its own
+  // caption from. That record is not sent for every impact, and when it was not these
+  // four are absent rather than false: nothing is known about what the round did, and
+  // optional says exactly that. Absent also covers a record that arrived but
+  // contradicted itself, its part count disagreeing with the part numbers it names.
+  optional bool penetration    = 15;  // The round went through.
+  optional bool cumulative_jet = 16;  // Shaped charge jet.
+  optional bool ricochet       = 17;  // The round bounced off.
+  optional bool fire           = 18;  // The hit started a fire.
+
+  // What this hit broke: the parts whose damage state is new since the previous hit
+  // camera record on this victim. The packet itself carries the victim's whole damaged
+  // state, which only grows over a battle, so the difference is what this round added.
+  // Empty when the round broke nothing new, which is most of them.
+  repeated DamagePart damaged_parts = 19;
+  // The killing blow, picked among the impacts of that pair on the victim's current
+  // life, at or before the moment of the kill: the latest whose ammo the kill report
+  // named, else - for a kill by bomb, rocket or torpedo - the latest blast the report
+  // does not contradict, else simply the latest. A kill by one of those three with no
+  // blast among the candidates marks nothing rather than blaming a stray bullet, so a
+  // kill can have candidates and still leave no flag; a kill naming no opponent marks
+  // nothing either, so a suicide does not turn the last harmless hit into a kill.
+  bool killed = 20;
+}
+
+
+
+// One firing event, built from a single source: the barrel ammo counter. A record
+// exists exactly where the counter stepped down, and the counter names the barrel,
+// the slot and so the ammo. The report stream is cut into records by the gun's own
+// rate of fire: a pause longer than the reported rounds needed at that rate is a
+// released trigger, not one burst.
+//
+//   single  one round left the barrel: a cannon shot, a launch. A gun fed one shell
+//           at a time is always this, however fast it is fired.
+//   burst   a run of reports the barrel put out without the trigger being released:
+//           a machine gun or an autocannon. time is the first report, round_t the
+//           ones after.
+//
+// Only shots that happened are here: a trigger held on an empty gun, on a reloading
+// one, on a broken one or with another weapon selected leaves no record. Smoke and
+// countermeasure dispensers are left out, as everywhere in this schema: dispensing
+// them is not combat. A shot the counter never reported is not here either.
+//
+// A record carries no direction of its own; it is read off the shooter trajectory.
+// mount joins to Entity.weapons[].mount, whose turret_yaw / turret_pitch / gun_pitch
+// channels carry the world aiming angles over time, and Entity x/y/z the origin.
+message Shot {
+  uint32 time = 1;  // Shot time, or burst start, ms.
+  string uid       = 2;  // Shooter uid, "0" when unknown.
+  string unit_id   = 3;  // Shooter vehicle id.
+  string unit_name = 4;  // Shooter vehicle display name.
+  // single | burst. A burst is a run of rounds the barrel put out without the trigger
+  // being released, which is read off the gun's own rate of fire: the ammo counter
+  // reports in batches, and a pause longer than the rounds themselves needed at that
+  // rate ends the burst. A gun fed one shell at a time never bursts - each of its shots
+  // is loaded separately - so for those every report is a single.
+  string type = 5;
+  // Model bone of the barrel that fired. A record is always about one barrel, so an
+  // anti air mount with four identical cannons firing together produces four records,
+  // one per bone. Joins to Entity.weapons[].mount, which names the gun - but only for
+  // a gun that section carries, and every barrel of every vehicle is in it.
+  string mount = 6;
+  uint32 rounds = 7;  // Rounds that left the barrel. 1 for a single shot.
+  // Burst only: when the ammo counter reported, as a delta from the previous report,
+  // the first from time. Restore with a running sum, same as every other delta channel
+  // here. One report can account for several rounds, so this is at most as long as
+  // rounds and often shorter.
+  repeated sint32 round_t = 8;
+  // What is left of the ammo this record fired, in this barrel, right after it: of
+  // that one shell type for a cannon carrying several, of that belt for a machine gun.
+  // It counts down the load the player took into the battle, not the vehicle's
+  // capacity - two spawns of one vehicle carry different amounts.
+  // Always a value the counter reported, because the counter is what makes a record
+  // at all: zero means the barrel ran dry with this shot, nothing else.
+  uint32 rounds_left = 9;
+  // What the barrel was loaded with. Two different things wear this name, and which
+  // one it is follows from the gun. A cannon is fed one shell at a time, so this is
+  // the shell: 122mm_br_540b, BR-540B. A machine gun, an autocannon and every gun an
+  // aircraft carries are fed a belt, a fixed mix of round types that is never broken
+  // up and whose rounds are never named one by one, so this is the belt as a whole:
+  // 50cal_universal, Universal. A launcher names the munition it sent off, the same
+  // pair as in projectiles[]. Empty when neither the loadout of the player nor the
+  // munition that left the barrel names it.
+  string ammo_id   = 10;   // Internal ammo id.
+  string ammo_name = 11;  // Display name. Empty when the game names the ammo nowhere.
 }
 
 message Award {
-  string uid   = 1;  // Awarded player uid.
-  string award = 2;  // Award identifier, e.g. first_blood.
-  uint32 time  = 3;  // Battle time, ms.
+  string uid        = 1;  // Awarded player uid.
+  string award_id   = 2;  // Award id as the game calls it, e.g. tank_die_hard.
+  string award_name = 3;  // Display name, e.g. Adamant. Empty when the game names none.
+  uint32 time       = 4;  // Battle time, ms.
+  uint32 stage      = 5;  // Streak step, zero for a one off award.
 }
+
 
 // A munition shot down in flight. The victim is the munition, not a vehicle.
 message Interception {
-  string offender_uid          = 1;  // Interceptor uid, "0" when unknown.
-  string offender_unit_id      = 2;  // Interceptor vehicle id.
-  string offended_uid          = 3;  // Uid of the player whose munition was destroyed.
-  string used_weapon_id        = 4;  // Munition used to intercept.
-  string intercepted_weapon_id = 5;  // Munition that was destroyed.
-  uint32 time                  = 6;  // Battle time, ms.
+  string offender_uid            = 1;  // Interceptor uid, "0" when unknown.
+  string offender_unit_id        = 2;  // Interceptor vehicle id.
+  string offender_unit_name      = 3;  // Interceptor vehicle display name.
+  string offended_uid            = 4;  // Uid of the player whose munition was destroyed.
+  string used_weapon_id          = 5;  // Munition used to intercept.
+  string used_weapon_name        = 6;  // Display name, empty when the game names none.
+  string intercepted_weapon_id   = 7;  // Munition that was destroyed.
+  string intercepted_weapon_name = 8;  // Display name, empty when the game names none.
+  uint32 time                    = 9;  // Battle time, ms.
 }
+
 
 message ChatLine {
   string uid     = 1;  // Sender uid, "0" when unknown.
-  string type    = 2;  // all | team | ...
+  string type    = 2;  // all | team
   string message = 3;  // Message text.
   uint32 time    = 4;  // Battle time, ms.
 }
@@ -259,13 +532,17 @@ message Zone {
   uint32 icon_idx       = 2;  // Raw icon index the label is derived from.
   repeated float center = 3;  // Zone center (x, y, z), metres, not quantized.
   float  radius         = 4;  // Zone radius, metres.
+  // Capture history: the series starts at the first change, not at battle time zero.
+  // The zone is neutral until then, which is what a zero capture value means anyway.
   repeated sint32 cap_t = 5;  // Time deltas of the capture history, ms.
   repeated sint32 cap_v = 6;  // Capture value deltas: -100 team 1, 0 neutral, 100 team 2.
 }
 
-message Tickets {
-  repeated sint32 team1_t = 1;  // Time deltas of the team 1 ticket history, ms.
-  repeated sint32 team1_v = 2;  // Ticket value deltas for team 1.
-  repeated sint32 team2_t = 3;  // Time deltas of the team 2 ticket history, ms.
-  repeated sint32 team2_v = 4;  // Ticket value deltas for team 2.
+// Ticket history of one team.
+message TeamTickets {
+  uint32 team       = 1;  // Team number, 1 or 2.
+  // The series starts at the first reported count, which is the count the team began
+  // with - not at battle time zero, where nothing was reported yet.
+  repeated sint32 t = 2;  // Time deltas, ms.
+  repeated sint32 v = 3;  // Ticket value deltas.
 }

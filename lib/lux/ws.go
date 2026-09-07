@@ -139,7 +139,7 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 					wsClose()
 					return
 				}
-				if m.SchemaVersion != 1 {
+				if m.SchemaVersion != 2 {
 					log.Error().Msg("proto schema wrong version")
 					wsClose()
 					return
