@@ -491,6 +491,33 @@ func (s *KillsStorage) GetAmountsByKillerVehicle(ctx context.Context) (map[strin
 	return ret, err
 }
 
+type InterestKillsDeathsRow struct {
+	ID     uint64
+	Kills  int
+	Deaths int
+}
+
+func (s *KillsStorage) GetAmountsOfInteresting(ctx context.Context, ids []uint64) ([]InterestKillsDeathsRow, error) {
+	rows, err := s.db.Query(ctx, `with interest_ids(id) AS (select unnest($1::bigint[]))
+	select r.id,
+    coalesce(sum(case when k.killer_id = r.id then 1 else 0 end), 0) as killer_count,
+    coalesce(sum(case when k.victim_id = r.id then 1 else 0 end), 0) as victim_count
+	from interest_ids r
+	left join kills k on (k.killer_id = r.id or k.victim_id = r.id)
+	group by r.id
+	order by r.id;
+`, ids)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return []InterestKillsDeathsRow{}, nil
+		}
+	}
+	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (r InterestKillsDeathsRow, err error) {
+		err = row.Scan(&r.ID, &r.Kills, &r.Deaths)
+		return
+	})
+}
+
 func (s *KillsStorage) Close() {
 	s.db.Close()
 }

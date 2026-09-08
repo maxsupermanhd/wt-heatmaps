@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"main/frontend"
 	"main/lib/caches"
 	"maps"
@@ -25,6 +26,7 @@ func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 		statsGetByLevel,
 		statsGetByDay,
 		statsGetByVehicles,
+		statsGetInteresting,
 	}
 	for _, fn := range tables {
 		st, err := fn(ctx)
@@ -163,6 +165,45 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 		})
 	}
 	return []frontend.StatsTable{tableByBR, tableByVehicles}, nil
+}
+
+func statsGetInteresting(ctx context.Context) ([]frontend.StatsTable, error) {
+	idsStrings, ok := cfg.GetKeys("interesting")
+	if !ok {
+		return nil, nil
+	}
+	req := map[uint64]string{}
+	for _, idString := range idsStrings {
+		id, err := strconv.ParseUint(idString, 10, 64)
+		if err != nil {
+			continue
+		}
+		name, ok := cfg.GetString("interesting", idString)
+		if ok {
+			req[id] = name
+		}
+	}
+	interesting, err := ks.GetAmountsOfInteresting(ctx, slices.Collect(maps.Keys(req)))
+	if err != nil {
+		log.Err(err).Msg("cache update interesting")
+		return nil, err
+	}
+	ret := [][]templ.Component{}
+	for _, row := range interesting {
+		row.Deaths = max(row.Deaths, 1)
+		ret = append(ret, []templ.Component{
+			frontend.TextNode(req[row.ID]),
+			frontend.TextNode(strconv.FormatUint(row.ID, 10)),
+			frontend.TextNode(strconv.Itoa(row.Kills)),
+			frontend.TextNode(strconv.Itoa(row.Deaths)),
+			frontend.TextNode(fmt.Sprintf("%.2f", float64(row.Kills)/float64(row.Deaths))),
+		})
+	}
+	return []frontend.StatsTable{{
+		Caption:      "Interesting",
+		ColumnLabels: []string{"Name", "ID", "K", "D", "K/D"},
+		Rows:         ret,
+	}}, nil
 }
 
 func serveStats(_ http.ResponseWriter, _ *http.Request) templ.Component {
