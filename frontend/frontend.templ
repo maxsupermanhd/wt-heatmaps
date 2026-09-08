@@ -33,12 +33,35 @@ templ Page(content templ.Component) {
 	</html>
 }
 
-templ Waitroom() {
-	<div style="text-align: center;">
-		<h2>Please wait</h2>
-		<p>Getting data ready for you...</p>
-		<p><small><i>This page will refresh periodically</i></small></p>
-	</div>
+templ WaitroomPage() {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
+			<title>WT-Heatmaps</title>
+			<link href="/static/style.css" rel="stylesheet"/>
+		</head>
+		<body class="mainstyle">
+			<style>
+				.title{font-weight: bold;font-size: larger;margin-right: 1em;}
+				.header > span > a {margin-right: 1em;}
+			</style>
+			<nav class="header">
+				<span class="title">War Thunder Heatmaps</span>
+				<span><a href="/">View</a></span>
+				<span><a href="/stats">Stats</a></span>
+				<span><a href="/about">About</a></span>
+				<span><a href="/api">API</a></span>
+				<span style="float: right;"><small>by flexcoral</small></span>
+			</nav>
+			<div style="text-align: center;">
+				<h2>Please wait</h2>
+				<p>Getting data ready for you...</p>
+				<p><small><i>This page will refresh periodically</i></small></p>
+			</div>
+		</body>
+	</html>
 }
 
 type LevelStat struct {
@@ -177,6 +200,9 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 }
 
 func BRString(i int) string {
+	if i == 0 {
+		return "???"
+	}
 	rem := i % 3
 	switch rem {
 	case 1:

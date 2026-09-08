@@ -97,7 +97,7 @@ func seveWaitroom(w http.ResponseWriter, r *http.Request) templ.Component {
 	}
 	w.Header().Add("Cache-Control", "no-store")
 	w.Header().Add("Refresh", "4")
-	return frontend.Page(frontend.Waitroom())
+	return frontend.WaitroomPage()
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {

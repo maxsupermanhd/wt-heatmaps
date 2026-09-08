@@ -49,7 +49,7 @@ func Page(content templ.Component) templ.Component {
 	})
 }
 
-func Waitroom() templ.Component {
+func WaitroomPage() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
 		if templ_7745c5c3_CtxErr := ctx.Err(); templ_7745c5c3_CtxErr != nil {
@@ -70,7 +70,7 @@ func Waitroom() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<div style=\"text-align: center;\"><h2>Please wait</h2><p>Getting data ready for you...</p><p><small><i>This page will refresh periodically</i></small></p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, height=device-height, initial-scale=1.0\"><title>WT-Heatmaps</title><link href=\"/static/style.css\" rel=\"stylesheet\"></head><body class=\"mainstyle\"><style>\n\t\t\t\t.title{font-weight: bold;font-size: larger;margin-right: 1em;}\n\t\t\t\t.header > span > a {margin-right: 1em;}\n\t\t\t</style><nav class=\"header\"><span class=\"title\">War Thunder Heatmaps</span> <span><a href=\"/\">View</a></span> <span><a href=\"/stats\">Stats</a></span> <span><a href=\"/about\">About</a></span> <span><a href=\"/api\">API</a></span> <span style=\"float: right;\"><small>by flexcoral</small></span></nav><div style=\"text-align: center;\"><h2>Please wait</h2><p>Getting data ready for you...</p><p><small><i>This page will refresh periodically</i></small></p></div></body></html>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -117,7 +117,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var4 string
 			templ_7745c5c3_Var4, templ_7745c5c3_Err = templ.ResolveAttributeValue(v.Level)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 96, Col: 166}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 119, Col: 166}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var4)
 			if templ_7745c5c3_Err != nil {
@@ -130,7 +130,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var5 string
 			templ_7745c5c3_Var5, templ_7745c5c3_Err = templ.JoinStringErrs(v.LevelDisplay)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 96, Col: 242}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 119, Col: 242}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var5))
 			if templ_7745c5c3_Err != nil {
@@ -143,7 +143,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var6 string
 			templ_7745c5c3_Var6, templ_7745c5c3_Err = templ.JoinStringErrs(v.Samples)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 98, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 121, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var6))
 			if templ_7745c5c3_Err != nil {
@@ -156,7 +156,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue("/minimap/128/" + v.Level)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 102, Col: 50}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 125, Col: 50}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -208,6 +208,9 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 }
 
 func BRString(i int) string {
+	if i == 0 {
+		return "???"
+	}
 	rem := i % 3
 	switch rem {
 	case 1:
@@ -246,7 +249,7 @@ func brSelector(name string, battleRatingMax int) templ.Component {
 		var templ_7745c5c3_Var9 string
 		templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 191, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 217, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var9)
 		if templ_7745c5c3_Err != nil {
@@ -264,7 +267,7 @@ func brSelector(name string, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue(i)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 194, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 220, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -277,7 +280,7 @@ func brSelector(name string, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var11 string
 			templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.JoinStringErrs(BRString(i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 194, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 220, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var11))
 			if templ_7745c5c3_Err != nil {
@@ -344,7 +347,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.JoinStringErrs(widthMeters)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 221, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 247, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var13))
 		if templ_7745c5c3_Err != nil {
@@ -357,7 +360,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 		var templ_7745c5c3_Var14 string
 		templ_7745c5c3_Var14, templ_7745c5c3_Err = templ.JoinStringErrs(heightMeters)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 221, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 247, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var14))
 		if templ_7745c5c3_Err != nil {
@@ -381,7 +384,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 			var templ_7745c5c3_Var15 string
 			templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(total)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 232, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 258, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 			if templ_7745c5c3_Err != nil {
@@ -394,7 +397,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 			var templ_7745c5c3_Var16 string
 			templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(KillDeathRatio(globKills, globDeaths))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 232, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 258, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 			if templ_7745c5c3_Err != nil {
@@ -412,7 +415,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var17 string
 				templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.JoinStringErrs(limit)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 235, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 261, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var17))
 				if templ_7745c5c3_Err != nil {
@@ -449,7 +452,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var18 string
 				templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.JoinStringErrs(v.Kills)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 256, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 282, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var18))
 				if templ_7745c5c3_Err != nil {
@@ -462,7 +465,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var19 string
 				templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(v.Deaths)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 257, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 283, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 				if templ_7745c5c3_Err != nil {
@@ -475,7 +478,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var20 string
 				templ_7745c5c3_Var20, templ_7745c5c3_Err = templ.JoinStringErrs(v.Kills + v.Deaths)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 258, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 284, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var20))
 				if templ_7745c5c3_Err != nil {
@@ -488,7 +491,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var21 string
 				templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(KillDeathRatio(v.Kills, v.Deaths))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 259, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 285, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 				if templ_7745c5c3_Err != nil {
@@ -536,7 +539,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 		var templ_7745c5c3_Var23 string
 		templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.ResolveAttributeValue("https://static.encyclopedia.warthunder.com/slots/" + v.ID + ".png")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 268, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 294, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
 		if templ_7745c5c3_Err != nil {
@@ -559,7 +562,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 		var templ_7745c5c3_Var24 templ.SafeURL
 		templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinURLErrs("https://wiki.warthunder.com/unit/" + v.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 272, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 298, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 		if templ_7745c5c3_Err != nil {
@@ -577,7 +580,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 			var templ_7745c5c3_Var25 string
 			templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(v.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 274, Col: 13}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 300, Col: 13}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 			if templ_7745c5c3_Err != nil {
@@ -591,7 +594,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 			var templ_7745c5c3_Var26 string
 			templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(v.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 276, Col: 9}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 302, Col: 9}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 			if templ_7745c5c3_Err != nil {
@@ -640,7 +643,7 @@ func Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ing
 		var templ_7745c5c3_Var28 string
 		templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(updatedAt.Format(time.DateTime))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 298, Col: 47}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 324, Col: 47}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 		if templ_7745c5c3_Err != nil {
@@ -653,7 +656,7 @@ func Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ing
 		var templ_7745c5c3_Var29 string
 		templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(time.Since(updatedAt).Round(time.Second).String())
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 299, Col: 54}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 325, Col: 54}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 		if templ_7745c5c3_Err != nil {
@@ -666,7 +669,7 @@ func Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ing
 		var templ_7745c5c3_Var30 string
 		templ_7745c5c3_Var30, templ_7745c5c3_Err = templ.JoinStringErrs(ingestStatSessionRate5m)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 300, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 326, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var30))
 		if templ_7745c5c3_Err != nil {
@@ -679,7 +682,7 @@ func Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ing
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.JoinStringErrs(ingestStatKillsRate5m)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 300, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 326, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var31))
 		if templ_7745c5c3_Err != nil {
@@ -697,7 +700,7 @@ func Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ing
 			var templ_7745c5c3_Var32 string
 			templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinStringErrs(t.Caption)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 306, Col: 51}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 332, Col: 51}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 			if templ_7745c5c3_Err != nil {
@@ -715,7 +718,7 @@ func Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ing
 				var templ_7745c5c3_Var33 string
 				templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(v)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 310, Col: 15}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 336, Col: 15}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 				if templ_7745c5c3_Err != nil {
@@ -795,7 +798,7 @@ func StatElementFixedPercentBar(percent float64) templ.Component {
 		var templ_7745c5c3_Var35 string
 		templ_7745c5c3_Var35, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %dpx", int(math.Round(100*percent))))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 332, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 358, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var35))
 		if templ_7745c5c3_Err != nil {
@@ -808,7 +811,7 @@ func StatElementFixedPercentBar(percent float64) templ.Component {
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %dpx", int(math.Round(100*(1-percent)))))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 332, Col: 196}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 358, Col: 196}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -846,7 +849,7 @@ func TextNode(content string) templ.Component {
 		var templ_7745c5c3_Var38 string
 		templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(content)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 336, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 362, Col: 10}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 		if templ_7745c5c3_Err != nil {
