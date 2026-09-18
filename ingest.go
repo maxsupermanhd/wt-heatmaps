@@ -148,9 +148,9 @@ func getPreferences() (ret map[string]any, err error) {
 	}
 	if len(byBR) != 0 {
 		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)-len(reqBRsInternal)/3-1]
-		reqBRs := make([]float32, len(reqBRsInternal))
+		reqBRs := make([]string, len(reqBRsInternal))
 		for i := range reqBRsInternal {
-			reqBRs[i] = frontend.BRNumber(reqBRsInternal[i])
+			reqBRs[i] = frontend.BRString(reqBRsInternal[i])
 		}
 		mainCond = append(mainCond, map[string]any{"brs": reqBRs})
 	}
