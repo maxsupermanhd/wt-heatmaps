@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"main/frontend"
 	"main/lib/killstorage"
 	"main/lib/lux"
 	"main/lib/lux/luxproto/luxprotogen"
@@ -139,14 +140,18 @@ func getPreferences() (ret map[string]any, err error) {
 		}
 		byBR[br] = byBR[br] + c
 	}
-	reqBRs := slices.SortedFunc(maps.Keys(byBR), func(a, b int) int {
+	reqBRsInternal := slices.SortedFunc(maps.Keys(byBR), func(a, b int) int {
 		return byBR[a] - byBR[b]
 	})
 	mainCond := []map[string]any{
 		{"maps": reqMaps},
 	}
 	if len(byBR) != 0 {
-		reqBRs = reqBRs[:len(reqBRs)-len(reqBRs)/3-1]
+		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)-len(reqBRsInternal)/3-1]
+		reqBRs := make([]float32, len(reqBRsInternal))
+		for i := range reqBRsInternal {
+			reqBRs[i] = frontend.BRNumber(reqBRsInternal[i])
+		}
 		mainCond = append(mainCond, map[string]any{"brs": reqBRs})
 	}
 	ret = map[string]any{

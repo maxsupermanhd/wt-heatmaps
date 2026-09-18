@@ -213,6 +213,20 @@ func BRString(i int) string {
 	return fmt.Sprintf("%d.%d", 1+i/3, rem)
 }
 
+func BRNumber(i int) float32 {
+	if i == 0 {
+		return 0
+	}
+	rem := i % 3
+	switch rem {
+	case 1:
+		rem = 3
+	case 2:
+		rem = 7
+	}
+	return float32(1+i/3) + float32(rem)/10
+}
+
 templ brSelector(name string, battleRatingMax int) {
 	<select name={ name }>
 		<option selected></option>
