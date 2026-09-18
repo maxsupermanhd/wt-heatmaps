@@ -7,7 +7,7 @@ import (
 	"image/color"
 	"main/frontend"
 	"main/lib/caches"
-	killstorage "main/lib/killstorage-duckdb"
+	"main/lib/killstorage"
 	"maps"
 	"math"
 	"net/http"

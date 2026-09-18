@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 	"main/lib/caches"
-	killstorage "main/lib/killstorage-duckdb"
+	"main/lib/killstorage"
 	"main/lib/workerpool"
 	"os"
 	"os/signal"
