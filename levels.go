@@ -25,12 +25,15 @@ var (
 )
 
 func getSortedLevelStats() ([]frontend.LevelStat, error) {
-	levelAmounts, _ := levelAmountsCache.Get()
+	levelAmounts, err := levelAmountsCache.Get()
+	if err != nil {
+		return nil, err
+	}
 	levelNames := make([]string, len(levelAmounts))
 	for i, v := range levelAmounts {
 		levelNames[i] = v.LevelName
 	}
-	err := levelByColorSorter.Sort(levelNames)
+	err = levelByColorSorter.Sort(levelNames)
 	if err != nil {
 		return nil, err
 	}
