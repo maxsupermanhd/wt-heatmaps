@@ -109,14 +109,13 @@ func getPreferences() (ret map[string]any, err error) {
 	if err != nil {
 		return
 	}
-	reqMaps := []string{}
-	i := 0
-	for _, v := range slices.Backward(byLevel) {
-		if i >= cfg.GetDInt(20, "lux", "fetchMapsCount") {
-			break
-		}
-		reqMaps = append(reqMaps, levelToLocalized(v.LevelName))
-		i++
+	slices.Reverse(byLevel)
+	if len(byLevel) > 2 {
+		byLevel = byLevel[:len(byLevel)/2]
+	}
+	reqMaps := make([]string, len(byLevel))
+	for i := range reqMaps {
+		reqMaps[i] = levelToLocalized(byLevel[i].LevelName)
 	}
 	byVehicle, err := ks.GetAmountsByVehicle(context.Background())
 	if err != nil {
@@ -142,8 +141,8 @@ func getPreferences() (ret map[string]any, err error) {
 	mainCond := []map[string]any{
 		{"maps": reqMaps},
 	}
-	if len(byBR) != 0 {
-		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)-len(reqBRsInternal)/3-1]
+	if len(byBR) > 2 {
+		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)/2]
 		reqBRs := make([]string, len(reqBRsInternal))
 		for i := range reqBRsInternal {
 			reqBRs[i] = frontend.BRString(reqBRsInternal[i])
