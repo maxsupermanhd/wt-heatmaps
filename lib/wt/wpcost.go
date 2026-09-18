@@ -3,8 +3,10 @@ package wt
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"slices"
+	"strings"
 )
 
 type WpcostVehicle struct {
@@ -71,6 +73,16 @@ func NewVehicleEconomyCatalog(wpcostJsonReader io.Reader) (*VehicleEconomyCatalo
 		return nil, errors.New("economicRankMax not found in json")
 	}
 	delete(wpcost, "economicRankMax")
+	var errs []error
+	for k, v := range wpcost {
+		if strings.IndexAny(k, "QWERTYUIOPASDFGHJKLZXCVBNM") != -1 {
+			_, ok := wpcost[strings.ToLower(k)]
+			if ok {
+				errs = append(errs, fmt.Errorf("case fold collision %q %q", k, strings.ToLower(k)))
+			}
+			wpcost[strings.ToLower(k)] = v
+		}
+	}
 	byBattleRating := make([][]string, rankMax.EconomicRankHistorical+1)
 	for k, v := range wpcost {
 		if v.EconomicRankHistorical < 0 || v.EconomicRankHistorical >= len(byBattleRating) {
@@ -89,7 +101,7 @@ func NewVehicleEconomyCatalog(wpcostJsonReader io.Reader) (*VehicleEconomyCatalo
 		byBattleRating: byBattleRating,
 		rankMax:        rankMax.EconomicRankHistorical,
 	}
-	return ret, nil
+	return ret, errors.Join(errs...)
 }
 
 func (brg *VehicleEconomyCatalog) GetAllByRank(rank int) []string {
