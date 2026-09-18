@@ -17,6 +17,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 
+	"github.com/duckdb/duckdb-go/v2"
 	_ "github.com/duckdb/duckdb-go/v2"
 )
 
@@ -30,12 +31,13 @@ create database thunder with owner thunder;
 */
 
 func NewKillsStorage(dbpath string) (*KillsStorage, error) {
-	db, err := initDb(dbpath)
+	dbConnector, db, err := initDb(dbpath)
 	if err != nil {
 		return nil, err
 	}
 	ret := &KillsStorage{
-		db: db,
+		db:          db,
+		dbConnector: dbConnector,
 	}
 	ret.cLevels, err = prepareDict(db, "level_names")
 	if err != nil {
@@ -102,23 +104,27 @@ limit 1`, v).Scan(&ret)
 	}
 }
 
-func initDb(dbpath string) (*sql.DB, error) {
-	db, err := sql.Open("duckdb", dbpath)
+func initDb(dbpath string) (*duckdb.Connector, *sql.DB, error) {
+	dbConnector, err := duckdb.NewConnector(dbpath, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+	db := sql.OpenDB(dbConnector)
+	if err != nil {
+		return nil, nil, err
 	}
 	for _, dictName := range []string{"level_names", "mission_names", "vehicle_names", "weapon_names"} {
 		_, err = db.ExecContext(context.Background(), `create sequence if not exists `+dictName+`_id_seq;`)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		_, err = db.ExecContext(context.Background(), `create table if not exists `+dictName+` (id integer primary key default nextval('`+dictName+`_id_seq'), name text not null unique);`)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	_, err = db.ExecContext(context.Background(), `create table if not exists kills (
 	session ubigint not null,
@@ -139,9 +145,9 @@ func initDb(dbpath string) (*sql.DB, error) {
 	victim_posz real not null
 );`)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return db, nil
+	return dbConnector, db, nil
 }
 
 type Kill struct {
@@ -164,7 +170,8 @@ type Kill struct {
 }
 
 type KillsStorage struct {
-	db *sql.DB
+	dbConnector *duckdb.Connector
+	db          *sql.DB
 
 	lock      sync.Mutex
 	cLevels   *caches.GenIDTwoWayMap[int, string]
@@ -209,14 +216,19 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 		}
 	}
 	s.lock.Unlock()
+	conn, err := s.dbConnector.Connect(context.Background())
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+	appender, err := duckdb.NewAppenderFromConn(conn, "", "kills")
+	if err != nil {
+		return err
+	}
+	defer appender.Close()
 	for i, k := range toinsert {
 		sessionTime := time.Unix(int64(k.SessionTime), 0)
-		s.db.Exec(`insert into kills (
-				session, session_time, kill_time, level, mission,
-				killer_id, killer_team, killer_vehicle, killer_posx, killer_posz, weapon,
-				victim_id, victim_team, victim_vehicle, victim_posx, victim_posz
-			) values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16);`,
-			k.Session, sessionTime, k.KillTime, idsLevel[i], idsMission[i],
+		err = appender.AppendRow(k.Session, sessionTime, k.KillTime, idsLevel[i], idsMission[i],
 			k.KillerID, k.KillerTeam, idsKillerVehicle[i], k.KillerPosX, k.KillerPosZ, idsWeapon[i],
 			k.VictimID, k.VictimTeam, idsVictimVehicle[i], k.VictimPosX, k.VictimPosZ)
 		if err != nil {
