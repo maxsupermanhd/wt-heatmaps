@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"main/frontend"
-	"main/lib/killstorage"
+	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/lux"
 	"main/lib/lux/luxproto/luxprotogen"
 	"main/lib/ratetrack"

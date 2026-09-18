@@ -4,3 +4,4 @@ data/
 cache/
 config.json
 *.db
+*.wal
