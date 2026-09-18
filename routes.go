@@ -101,7 +101,11 @@ func seveWaitroom(w http.ResponseWriter, r *http.Request) templ.Component {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
-	levels, _ := levelStatsSorted.Get()
+	levels, err := levelStatsSorted.Get()
+	if err != nil {
+		log.Err(err).Msg("level stats sorted")
+		return frontend.Page(frontend.TextNode("something went really wrong"))
+	}
 	vehicles := slices.Collect(maps.Values(ks.GetDictVehicles()))
 	slices.Sort(vehicles)
 	return frontend.Page(frontend.Index(levels, vehicleEconomyCatalog.GetRankMax()))
