@@ -87,6 +87,9 @@ func GetLevelCoordsCached(cacheFile, level string) (ret LevelCoords, err error) 
 	}
 	err = json.NewDecoder(resp.Body).Decode(&ret)
 	resp.Body.Close()
+	if err != nil {
+		return
+	}
 
 	cachedCoordsLock.Lock()
 	cachedCoords[level] = ret
