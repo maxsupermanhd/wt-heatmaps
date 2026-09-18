@@ -119,7 +119,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 		byBR[br] = byBR[br] + c
 	}
 	tableByBR := frontend.StatsTable{
-		Caption:      "Records by killer BR",
+		Caption:      "Records by BR",
 		ColumnLabels: []string{"BR", "Count", ""},
 		Rows:         [][]templ.Component{},
 	}
@@ -135,7 +135,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 		})
 	}
 	tableByVehicles := frontend.StatsTable{
-		Caption:      "Records by killer vehicles",
+		Caption:      "Records by vehicles",
 		ColumnLabels: []string{"Vehicle", "BR", "Count"},
 		Rows:         [][]templ.Component{},
 	}
