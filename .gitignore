@@ -3,3 +3,4 @@ logs/
 data/
 cache/
 config.json
+*.db
