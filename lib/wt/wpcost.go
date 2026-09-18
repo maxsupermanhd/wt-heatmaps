@@ -23,10 +23,10 @@ func (v WpcostVehicle) IsEvent() bool {
 
 func (val *WpcostVehicle) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 {
-		return nil
+		return errors.New("empty unmarshal element")
 	}
 	if val == nil {
-		return nil
+		return errors.New("nil pointer")
 	}
 	switch b[0] {
 	case '{':
