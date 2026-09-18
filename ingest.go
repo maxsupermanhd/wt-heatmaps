@@ -115,13 +115,9 @@ func getPreferences() (ret map[string]any, err error) {
 		if i >= cfg.GetDInt(20, "lux", "fetchMapsCount") {
 			break
 		}
-		if v.LevelName == "levels/avg_nuclear_incident.bin" {
-			continue
-		}
 		reqMaps = append(reqMaps, levelToLocalized(v.LevelName))
 		i++
 	}
-	reqMaps = append(reqMaps, "Falkland Islands")
 	byVehicle, err := ks.GetAmountsByVehicle(context.Background())
 	if err != nil {
 		return
