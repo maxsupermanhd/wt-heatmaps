@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
-	"errors"
 	"fmt"
 	"image"
 	"image/png"
@@ -31,7 +30,7 @@ func tankmapFetchB64LEV(kb64 string) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode != 200 {
-		return nil, errors.New("status " + resp.Status)
+		return nil, fmt.Errorf("%s while downloading %q", resp.Status, fetchUrl)
 	}
 	ret, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
