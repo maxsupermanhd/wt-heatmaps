@@ -8,7 +8,6 @@ import (
 	"io"
 	"main/lib/lux/luxproto/luxprotogen"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -21,32 +20,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-type FetchPreferences struct {
-	Maps   []string `json:"maps"`
-	UIDs   []string `json:"uids"`
-	Groups []string `json:"groups"`
-}
-
-func (prefs FetchPreferences) String() string {
-	return strings.Join([]string{
-		peekAbbrevStrArr("Maps", prefs.Maps),
-		peekAbbrevStrArr("UIDs", prefs.UIDs),
-		peekAbbrevStrArr("Groups", prefs.Groups),
-	}, ", ")
-}
-
-func peekAbbrevStrArr(l string, a []string) string {
-	switch len(a) {
-	case 0:
-		return "0 " + l
-	case 1:
-		return a[0]
-	default:
-		return a[0] + " +" + strconv.Itoa(len(a)-1) + " " + l
-	}
-}
-
-func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<- *luxprotogen.Replay, preferences <-chan FetchPreferences, token string) error {
+func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<- *luxprotogen.Replay, preferences <-chan map[string]any, token string) error {
 	ws, err := dialLux(log, token)
 	if err != nil {
 		return fmt.Errorf("dial lux: %w", err)

@@ -491,6 +491,50 @@ func (s *KillsStorage) GetAmountsByKillerVehicle(ctx context.Context) (map[strin
 	return ret, err
 }
 
+func (s *KillsStorage) GetAmountsByVictimVehicle(ctx context.Context) (map[string]int, error) {
+	rows, err := s.db.Query(ctx, `select vn.name, count(*) from kills left join vehicle_names as vn on vn.id = victim_vehicle group by vn.name`)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return map[string]int{}, nil
+		}
+	}
+	var name string
+	var c int
+	ret := map[string]int{}
+	_, err = pgx.ForEachRow(rows, []any{&name, &c}, func() error {
+		ret[name] = c
+		return nil
+	})
+	return ret, err
+}
+
+func (s *KillsStorage) GetAmountsByVehicle(ctx context.Context) (map[string]int, error) {
+	rows, err := s.db.Query(ctx, `select
+		vn.name, sum(p.seen) as s
+	from kills k
+	cross join lateral (
+  values
+    (k.killer_vehicle, 1),
+    (k.victim_vehicle, 1)
+	) as p(vehicle, seen)
+	left join vehicle_names as vn on vn.id = p.vehicle
+	group by vn.name
+	order by s desc`)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return map[string]int{}, nil
+		}
+	}
+	var name string
+	var c int
+	ret := map[string]int{}
+	_, err = pgx.ForEachRow(rows, []any{&name, &c}, func() error {
+		ret[name] = c
+		return nil
+	})
+	return ret, err
+}
+
 type InterestKillsDeathsRow struct {
 	ID     uint64
 	Kills  int

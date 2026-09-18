@@ -99,7 +99,7 @@ func statsGetByDay(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
-	byVehicle, err := ks.GetAmountsByKillerVehicle(ctx)
+	byVehicle, err := ks.GetAmountsByVehicle(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by br")
 		return nil, err

@@ -3,12 +3,15 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"main/lib/killstorage"
 	"main/lib/lux"
 	"main/lib/lux/luxproto/luxprotogen"
 	"main/lib/ratetrack"
+	"maps"
 	"os"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -31,26 +34,30 @@ func ingestRoutine(exitChan <-chan struct{}) {
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	carvesChan := make(chan *luxprotogen.Replay, 16)
-	preferencesChan := make(chan lux.FetchPreferences, 16)
+	preferencesChan := make(chan map[string]any, 16)
 	reconnectExitChan := make(chan struct{})
 	updatePreferencesExitChan := make(chan struct{})
 
 	wg.Go(func() {
 		prefs, err := getPreferences()
-		preferencesChan <- prefs
-		log.Err(err).Str("maps", prefs.String()).Msg("getting initial preferences")
+		if err == nil {
+			preferencesChan <- prefs
+		}
+		log.Err(err).Str("prefs", fmt.Sprintf("%#+v", prefs)).Msg("got initial preferences")
 		for {
 			select {
 			case <-updatePreferencesExitChan:
 				return
 			case <-time.After(20 * time.Minute):
 				prefs, err := getPreferences()
-				log.Err(err).Str("maps", prefs.String()).Msg("getting hourly preferences")
-				select {
-				case preferencesChan <- prefs:
-					log.Info().Msg("ingest preferences updated")
-				default:
-					log.Warn().Msg("ingest preferences not updated")
+				log.Err(err).Str("prefs", fmt.Sprintf("%#+v", prefs)).Msg("got preferences update")
+				if err == nil {
+					select {
+					case preferencesChan <- prefs:
+						log.Info().Msg("ingest preferences updated")
+					default:
+						log.Warn().Msg("ingest preferences not updated")
+					}
 				}
 			}
 		}
@@ -96,26 +103,62 @@ func ingestRoutine(exitChan <-chan struct{}) {
 	wg.Wait()
 }
 
-func getPreferences() (ret lux.FetchPreferences, err error) {
-	amounts, err := ks.GetAmountsByLevel(context.Background())
+func getPreferences() (ret map[string]any, err error) {
+	byLevel, err := ks.GetAmountsByLevel(context.Background())
 	if err != nil {
 		return
 	}
-	ret = lux.FetchPreferences{
-		Maps:   []string{},
-		UIDs:   []string{},
-		Groups: []string{"tank"},
-	}
+	reqMaps := []string{}
 	i := 0
-	for _, v := range slices.Backward(amounts) {
+	for _, v := range slices.Backward(byLevel) {
 		if i >= cfg.GetDInt(20, "lux", "fetchMapsCount") {
 			break
 		}
 		if v.LevelName == "levels/avg_nuclear_incident.bin" {
 			continue
 		}
-		ret.Maps = append(ret.Maps, levelToLocalized(v.LevelName))
+		reqMaps = append(reqMaps, levelToLocalized(v.LevelName))
 		i++
+	}
+	reqMaps = append(reqMaps, "Falkland Islands")
+	byVehicle, err := ks.GetAmountsByVehicle(context.Background())
+	if err != nil {
+		return
+	}
+	vehicles := map[string]int{}
+	for br := range vehicleEconomyCatalog.GetRankMax() {
+		for _, v := range vehicleEconomyCatalog.GetAllByRank(br) {
+			vehicles[strings.TrimPrefix(v, "tankmodels/")] = br
+		}
+	}
+	byBR := map[int]int{}
+	for v, c := range byVehicle {
+		br, ok := vehicles[v]
+		if !ok {
+			continue
+		}
+		byBR[br] = byBR[br] + c
+	}
+	reqBRs := slices.SortedFunc(maps.Keys(byBR), func(a, b int) int {
+		return byBR[a] - byBR[b]
+	})
+	mainCond := []map[string]any{
+		{"maps": reqMaps},
+	}
+	if len(byBR) != 0 {
+		reqBRs = reqBRs[:len(reqBRs)-len(reqBRs)/3-1]
+		mainCond = append(mainCond, map[string]any{"brs": reqBRs})
+	}
+	ret = map[string]any{
+		"op": "and",
+		"items": []map[string]any{
+			{
+				"modes": []string{"tank_event_in_random_battles_historical"},
+			}, {
+				"op":    "or",
+				"items": mainCond,
+			},
+		},
 	}
 	return
 }
