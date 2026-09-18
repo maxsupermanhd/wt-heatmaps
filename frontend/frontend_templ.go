@@ -209,7 +209,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 
 func BRString(i int) string {
 	if i == 0 {
-		return "???"
+		return "1.0"
 	}
 	rem := i % 3
 	switch rem {
@@ -223,7 +223,7 @@ func BRString(i int) string {
 
 func BRNumber(i int) float32 {
 	if i == 0 {
-		return 0
+		return 1
 	}
 	rem := i % 3
 	switch rem {
