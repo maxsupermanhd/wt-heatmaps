@@ -110,8 +110,8 @@ func getPreferences() (ret map[string]any, err error) {
 		return
 	}
 	slices.Reverse(byLevel)
-	if len(byLevel) > 2 {
-		byLevel = byLevel[:len(byLevel)/2]
+	if len(byLevel) > 4 {
+		byLevel = byLevel[:len(byLevel)/4]
 	}
 	reqMaps := make([]string, len(byLevel))
 	for i := range reqMaps {
@@ -141,8 +141,8 @@ func getPreferences() (ret map[string]any, err error) {
 	mainCond := []map[string]any{
 		{"maps": reqMaps},
 	}
-	if len(byBR) > 2 {
-		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)/2]
+	if len(byBR) > 4 {
+		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)/4]
 		reqBRs := make([]string, len(reqBRsInternal))
 		for i := range reqBRsInternal {
 			reqBRs[i] = frontend.BRString(reqBRsInternal[i])
