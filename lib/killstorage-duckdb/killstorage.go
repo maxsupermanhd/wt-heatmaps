@@ -236,6 +236,10 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 			return fmt.Errorf("kills insert: %w", err)
 		}
 	}
+	err = appender.Flush()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
