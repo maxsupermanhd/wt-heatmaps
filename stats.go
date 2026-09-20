@@ -39,6 +39,9 @@ func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
+	ingestCurrentPreferencesLock.Lock()
+	reqMaps := ingestCurrentPreferences.reqMaps
+	ingestCurrentPreferencesLock.Unlock()
 	byLevel, err := ks.GetAmountsByLevel(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by level")
@@ -50,15 +53,21 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 	}
 	byLevelRows := [][]templ.Component{}
 	for _, k := range byLevel {
+		levelName := levelToLocalized(k.LevelName)
+		isRequested := ""
+		if slices.Contains(reqMaps, levelName) {
+			isRequested = "↓"
+		}
 		byLevelRows = append(byLevelRows, []templ.Component{
-			frontend.TextNode(levelToLocalized(k.LevelName)),
+			frontend.TextNode(isRequested),
+			frontend.TextNode(levelName),
 			frontend.TextNode(strconv.Itoa(k.Count)),
 			frontend.StatElementFixedPercentBar(float64(k.Count) / float64(byLevelMax)),
 		})
 	}
 	return []frontend.StatsTable{{
 		Caption:      "Records by level",
-		ColumnLabels: []string{"Level", "Count"},
+		ColumnLabels: []string{"", "Level", "Count"},
 		Rows:         byLevelRows,
 	}}, nil
 }
@@ -99,6 +108,9 @@ func statsGetByDay(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
+	ingestCurrentPreferencesLock.Lock()
+	reqBrs := ingestCurrentPreferences.reqBrs
+	ingestCurrentPreferencesLock.Unlock()
 	byVehicle, err := ks.GetAmountsByVehicle(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by br")
@@ -120,7 +132,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 	}
 	tableByBR := frontend.StatsTable{
 		Caption:      "Records by BR",
-		ColumnLabels: []string{"BR", "Count", ""},
+		ColumnLabels: []string{"", "BR", "Count", ""},
 		Rows:         [][]templ.Component{},
 	}
 	byBRMax := 0
@@ -128,7 +140,12 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 		byBRMax = max(byBRMax, v)
 	}
 	for k := range slices.Sorted(maps.Keys(byBR)) {
+		isRequested := ""
+		if slices.Contains(reqBrs, frontend.BRString(k)) {
+			isRequested = "↓"
+		}
 		tableByBR.Rows = append(tableByBR.Rows, []templ.Component{
+			frontend.TextNode(isRequested),
 			frontend.TextNode(frontend.BRString(k)),
 			frontend.TextNode(strconv.Itoa(byBR[k])),
 			frontend.StatElementFixedPercentBar(float64(byBR[k]) / float64(byBRMax)),

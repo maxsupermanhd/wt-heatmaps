@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"main/frontend"
 	killstorage "main/lib/killstorage-duckdb"
@@ -20,9 +21,41 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
+type ingestPreferences struct {
+	reqMaps []string
+	reqBrs  []string
+}
+
+func (i ingestPreferences) MarshalJSON() ([]byte, error) {
+	mainCond := []map[string]any{}
+	if len(i.reqMaps) > 0 {
+		mainCond = append(mainCond, map[string]any{"maps": i.reqMaps})
+	}
+	if len(i.reqBrs) > 0 {
+		mainCond = append(mainCond, map[string]any{"brs": i.reqBrs})
+	}
+	if len(mainCond) == 0 {
+		return nil, errors.New("empty prefs")
+	}
+	return json.Marshal(map[string]any{
+		"op": "and",
+		"items": []map[string]any{
+			{
+				"modes": []string{"tank_event_in_random_battles_historical"},
+			}, {
+				"op":    "or",
+				"items": mainCond,
+			},
+		},
+	})
+}
+
 var (
 	ingestStatSessionRate5m = &atomic.Int64{}
 	ingestStatKillsRate5m   = &atomic.Int64{}
+
+	ingestCurrentPreferencesLock sync.Mutex
+	ingestCurrentPreferences     ingestPreferences
 )
 
 func ingestRoutine(exitChan <-chan struct{}) {
@@ -35,7 +68,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
 	carvesChan := make(chan *luxprotogen.Replay, 16)
-	preferencesChan := make(chan map[string]any, 16)
+	preferencesChan := make(chan any, 16)
 	reconnectExitChan := make(chan struct{})
 	updatePreferencesExitChan := make(chan struct{})
 
@@ -44,6 +77,9 @@ func ingestRoutine(exitChan <-chan struct{}) {
 		if err == nil {
 			preferencesChan <- prefs
 		}
+		ingestCurrentPreferencesLock.Lock()
+		ingestCurrentPreferences = prefs
+		ingestCurrentPreferencesLock.Unlock()
 		log.Err(err).Str("prefs", fmt.Sprintf("%#+v", prefs)).Msg("got initial preferences")
 		for {
 			select {
@@ -60,6 +96,9 @@ func ingestRoutine(exitChan <-chan struct{}) {
 						log.Warn().Msg("ingest preferences not updated")
 					}
 				}
+				ingestCurrentPreferencesLock.Lock()
+				ingestCurrentPreferences = prefs
+				ingestCurrentPreferencesLock.Unlock()
 			}
 		}
 	})
@@ -104,7 +143,8 @@ func ingestRoutine(exitChan <-chan struct{}) {
 	wg.Wait()
 }
 
-func getPreferences() (ret map[string]any, err error) {
+func getPreferences() (ret ingestPreferences, err error) {
+	ret = ingestPreferences{}
 	byLevel, err := ks.GetAmountsByLevel(context.Background())
 	if err != nil {
 		return
@@ -113,9 +153,9 @@ func getPreferences() (ret map[string]any, err error) {
 	if len(byLevel) > 4 {
 		byLevel = byLevel[:len(byLevel)/4]
 	}
-	reqMaps := make([]string, len(byLevel))
-	for i := range reqMaps {
-		reqMaps[i] = levelToLocalized(byLevel[i].LevelName)
+	ret.reqMaps = make([]string, len(byLevel))
+	for i := range ret.reqMaps {
+		ret.reqMaps[i] = levelToLocalized(byLevel[i].LevelName)
 	}
 	byVehicle, err := ks.GetAmountsByVehicle(context.Background())
 	if err != nil {
@@ -138,27 +178,12 @@ func getPreferences() (ret map[string]any, err error) {
 	reqBRsInternal := slices.SortedFunc(maps.Keys(byBR), func(a, b int) int {
 		return byBR[a] - byBR[b]
 	})
-	mainCond := []map[string]any{
-		{"maps": reqMaps},
-	}
 	if len(byBR) > 4 {
 		reqBRsInternal = reqBRsInternal[:len(reqBRsInternal)/4]
-		reqBRs := make([]string, len(reqBRsInternal))
+		ret.reqBrs = make([]string, len(reqBRsInternal))
 		for i := range reqBRsInternal {
-			reqBRs[i] = frontend.BRString(reqBRsInternal[i])
+			ret.reqBrs[i] = frontend.BRString(reqBRsInternal[i])
 		}
-		mainCond = append(mainCond, map[string]any{"brs": reqBRs})
-	}
-	ret = map[string]any{
-		"op": "and",
-		"items": []map[string]any{
-			{
-				"modes": []string{"tank_event_in_random_battles_historical"},
-			}, {
-				"op":    "or",
-				"items": mainCond,
-			},
-		},
 	}
 	return
 }

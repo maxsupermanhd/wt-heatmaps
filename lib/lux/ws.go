@@ -20,7 +20,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<- *luxprotogen.Replay, preferences <-chan map[string]any, token string) error {
+func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<- *luxprotogen.Replay, preferences <-chan any, token string) error {
 	ws, err := dialLux(log, token)
 	if err != nil {
 		return fmt.Errorf("dial lux: %w", err)
