@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var cachedStatsTables = caches.NewValueRefresh(wb, 4*time.Hour, func() ([]frontend.StatsTable, error) {
+var cachedStatsTables = caches.NewValueRefresh(wb, 15*time.Minute, func() ([]frontend.StatsTable, error) {
 	return collectStatsTables(context.Background())
 })
 
