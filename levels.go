@@ -6,7 +6,7 @@ import (
 	"main/frontend"
 	"main/lib/caches"
 	"main/lib/imagecolorsort"
-	killstorage "main/lib/killstorage-duckdb"
+	"main/lib/killstorage"
 	"main/lib/levelcoords"
 	"os"
 	"slices"
@@ -18,10 +18,10 @@ import (
 
 var (
 	levelByColorSorter = imagecolorsort.NewImageColorSort(tankmapFromCache)
-	levelAmountsCache  = caches.NewValueRefresh(wb, 15*time.Minute, func() ([]killstorage.AmountsByLevelRow, error) {
+	levelAmountsCache  = caches.NewValueRefresh(wb, 30*time.Minute, func() ([]killstorage.AmountsByLevelRow, error) {
 		return ks.GetAmountsByLevel(context.Background())
 	})
-	levelStatsSorted = caches.NewValueRefresh(wb, 15*time.Minute, getSortedLevelStats)
+	levelStatsSorted = caches.NewValueRefresh(wb, 30*time.Minute, getSortedLevelStats)
 )
 
 func getSortedLevelStats() ([]frontend.LevelStat, error) {

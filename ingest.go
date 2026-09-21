@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"main/frontend"
-	killstorage "main/lib/killstorage-duckdb"
+	"main/lib/killstorage"
 	"main/lib/lux"
 	"main/lib/lux/luxproto/luxprotogen"
 	"main/lib/ratetrack"
