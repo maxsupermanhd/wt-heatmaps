@@ -17,6 +17,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rs/zerolog/log"
 )
 
 /*
@@ -212,7 +213,7 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 				s.lock.Unlock()
 				return fmt.Errorf("partition %q %q create: %w", t.String(), t2.String(), err)
 			}
-			s.db.Exec(context.Background(), fmt.Sprintf(`create index if not exists kills_y%dm%dd%d_level_idx on %s (level);`, t.Year(), t.Month(), t.Day(), tableName))
+			// s.db.Exec(context.Background(), fmt.Sprintf(`create index if not exists kills_y%dm%dd%d_level_idx on %s (level);`, t.Year(), t.Month(), t.Day(), tableName))
 			s.partitions = append(s.partitions, tableName)
 		}
 	}
@@ -263,8 +264,10 @@ func (s *KillsStorage) GetDictVehicles() (vehicles map[int]string) {
 }
 
 type QueryConditions struct {
-	whereConds []string
-	whereArgs  []any
+	whereConds    []string
+	whereArgs     []any
+	hasTeamFilter bool
+	teamFilter    int
 }
 
 func (s *KillsStorage) QueryWithLevel(q *QueryConditions, level string) bool {
@@ -317,9 +320,9 @@ func (q *QueryConditions) QueryWithSessionTimeMax(tsTo time.Time) {
 	q.whereConds = append(q.whereConds, fmt.Sprintf("session_time < $%d", len(q.whereArgs)))
 }
 
-func (q *QueryConditions) QueryWithKillerTeam(killerTeam int) {
-	q.whereArgs = append(q.whereArgs, killerTeam)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_team = $%d", len(q.whereArgs)))
+func (q *QueryConditions) QueryWithTeam(team int) {
+	q.hasTeamFilter = true
+	q.teamFilter = team
 }
 
 func (q *QueryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
@@ -359,6 +362,15 @@ type KillTally struct {
 }
 
 func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryConditions) ([]KillTally, error) {
+	if conds == nil {
+		return nil, errors.ErrUnsupported
+	}
+	qKillValue := "+1"
+	qDeathValue := "-1"
+	if conds.hasTeamFilter {
+		qKillValue = `case when t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` then +1 else 0 end`
+		qDeathValue = `case when t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` then -1 else 0 end`
+	}
 	q := `SELECT
   (ROUND(p.x))::int AS x,
   (ROUND(p.z))::int AS z,
@@ -367,11 +379,12 @@ func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryCon
 FROM kills t
 CROSS JOIN LATERAL (
   VALUES
-    (t.killer_posx, t.killer_posz,  1),
-    (t.victim_posx, t.victim_posz, -1)
+    (t.killer_posx, t.killer_posz, ` + qKillValue + `),
+    (t.victim_posx, t.victim_posz, ` + qDeathValue + `)
 ) AS p(x, z, delta)
 ` + conds.WhereCase() + `
 GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
+	log.Info().Msg(q)
 	rows, err := s.db.Query(ctx, q, conds.whereArgs...)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -379,7 +392,6 @@ GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
 		}
 		return nil, err
 	}
-	// log.Info().Msg(q)
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (ret KillTally, err error) {
 		err = row.Scan(&ret.X, &ret.Z, &ret.Score, &ret.Count)
 		return
