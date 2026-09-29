@@ -114,12 +114,21 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 	return nil
 }
 
-func (s *KillsStorage) GetVehicles() (vehicles []string, err error) {
-	err = s.db.QueryRow(`select array_agg(distinct v) from (
+func (s *KillsStorage) GetVehicles(ctx context.Context) (vehicles []string, err error) {
+	rows, err := s.db.QueryContext(ctx, `select distinct v from (
 		select distinct killer_vehicle as v from kills
 		union all
-		select distinct victim_vehicle as v from kills);`).Scan(&vehicles)
-	return
+		select distinct victim_vehicle as v from kills);`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+	return CollectRows(rows, func(row CollectableRow) (ret string, err error) {
+		err = row.Scan(&ret)
+		return
+	})
 }
 
 type QueryConditions struct {
