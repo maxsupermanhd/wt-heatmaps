@@ -8,7 +8,6 @@ import (
 	"main/frontend"
 	"main/lib/caches"
 	killstorage "main/lib/killstorage-duckdb"
-	"maps"
 	"math"
 	"net/http"
 	"net/url"
@@ -106,7 +105,11 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 		log.Err(err).Msg("level stats sorted")
 		return frontend.Page(frontend.TextNode("something went really wrong"))
 	}
-	vehicles := slices.Collect(maps.Values(ks.GetDictVehicles()))
+	vehicles, err := ks.GetVehicles()
+	if err != nil {
+		log.Err(err).Msg("level stats sorted")
+		return frontend.Page(frontend.TextNode("something went really wrong"))
+	}
 	slices.Sort(vehicles)
 	return frontend.Page(frontend.Index(levels, vehicleEconomyCatalog.GetRankMax()))
 }
