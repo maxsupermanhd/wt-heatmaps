@@ -350,16 +350,11 @@ func (s *KillsStorage) GetAmountsByVictimVehicle(ctx context.Context) (map[strin
 }
 
 func (s *KillsStorage) GetAmountsByVehicle(ctx context.Context) (map[string]int, error) {
-	rows, err := s.db.QueryContext(ctx, `select
-		vehicle, sum(p.seen) as s
-	from kills k
-	cross join lateral (
-  values
-    (k.killer_vehicle, 1),
-    (k.victim_vehicle, 1)
-	) as p(vehicle, seen)
-	group by vehicle
-	order by s desc`)
+	rows, err := s.db.QueryContext(ctx, `select v, sum(c) from (
+		select k.killer_vehicle as v, count(*) as c from kills k group by v
+		union all
+		select k.victim_vehicle as v, count(*) as c from kills k group by v
+	) group by v;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return map[string]int{}, nil
