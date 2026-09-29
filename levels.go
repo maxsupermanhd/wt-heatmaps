@@ -6,7 +6,7 @@ import (
 	"main/frontend"
 	"main/lib/caches"
 	"main/lib/imagecolorsort"
-	"main/lib/killstorage"
+	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/levelcoords"
 	"os"
 	"slices"

@@ -123,8 +123,10 @@ func (s *KillsStorage) GetVehicles() (vehicles []string, err error) {
 }
 
 type QueryConditions struct {
-	whereConds []string
-	whereArgs  []any
+	whereConds    []string
+	whereArgs     []any
+	hasTeamFilter bool
+	teamFilter    int
 }
 
 func (s *KillsStorage) QueryWithLevel(q *QueryConditions, level string) bool {
@@ -153,9 +155,9 @@ func (q *QueryConditions) QueryWithSessionTimeMax(tsTo time.Time) {
 	q.whereConds = append(q.whereConds, fmt.Sprintf("session_time < $%d", len(q.whereArgs)))
 }
 
-func (q *QueryConditions) QueryWithKillerTeam(killerTeam int) {
-	q.whereArgs = append(q.whereArgs, killerTeam)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_team = $%d", len(q.whereArgs)))
+func (q *QueryConditions) QueryWithTeam(team int) {
+	q.hasTeamFilter = true
+	q.teamFilter = team
 }
 
 func (q *QueryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
@@ -195,6 +197,15 @@ type KillTally struct {
 }
 
 func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryConditions) ([]KillTally, error) {
+	if conds == nil {
+		return nil, errors.ErrUnsupported
+	}
+	qKillValue := "+1"
+	qDeathValue := "-1"
+	if conds.hasTeamFilter {
+		qKillValue = `case when t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` then +1 else 0 end`
+		qDeathValue = `case when t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` then -1 else 0 end`
+	}
 	q := `SELECT
   (ROUND(p.x))::int AS x,
   (ROUND(p.z))::int AS z,
@@ -203,8 +214,8 @@ func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryCon
 FROM kills t
 CROSS JOIN LATERAL (
   VALUES
-    (t.killer_posx, t.killer_posz,  1),
-    (t.victim_posx, t.victim_posz, -1)
+    (t.killer_posx, t.killer_posz, ` + qKillValue + `),
+    (t.victim_posx, t.victim_posz, ` + qDeathValue + `)
 ) AS p(x, z, delta)
 ` + conds.WhereCase() + `
 GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
