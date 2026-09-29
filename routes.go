@@ -183,8 +183,8 @@ func buildKillQuery(q url.Values, level string) (*killstorage.QueryConditions, b
 	if !ks.QueryWithLevel(kq, level) {
 		return nil, false
 	}
-	if val := urlValueInt(q, "killerTeam"); val != nil {
-		kq.QueryWithKillerTeam(*val)
+	if val := urlValueInt(q, "team"); val != nil {
+		kq.QueryWithTeam(*val)
 	}
 	if val := urlValueInt(q, "killTimeMin"); val != nil {
 		kq.QueryWithKillTimeMin(time.Duration(*val) * time.Second)

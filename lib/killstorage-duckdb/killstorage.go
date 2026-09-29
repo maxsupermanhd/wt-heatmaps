@@ -5,14 +5,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"main/lib/caches"
 	"main/lib/lux/luxproto/luxprotogen"
-	"maps"
 	"os"
-	"slices"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
@@ -20,15 +16,6 @@ import (
 	"github.com/duckdb/duckdb-go/v2"
 	_ "github.com/duckdb/duckdb-go/v2"
 )
-
-/*
-
-# db prep
-
-create user thunder with password 'warthunder_analytics_or_something';
-create database thunder with owner thunder;
-
-*/
 
 func NewKillsStorage(dbpath string) (*KillsStorage, error) {
 	dbConnector, db, err := initDb(dbpath)
@@ -39,69 +26,7 @@ func NewKillsStorage(dbpath string) (*KillsStorage, error) {
 		db:          db,
 		dbConnector: dbConnector,
 	}
-	ret.cLevels, err = prepareDict(db, "level_names")
-	if err != nil {
-		return nil, err
-	}
-	ret.cMissions, err = prepareDict(db, "mission_names")
-	if err != nil {
-		return nil, err
-	}
-	ret.cVehicles, err = prepareDict(db, "vehicle_names")
-	if err != nil {
-		return nil, err
-	}
-	ret.cWeapons, err = prepareDict(db, "weapon_names")
-	if err != nil {
-		return nil, err
-	}
 	return ret, nil
-}
-
-func prepareDict(db *sql.DB, tableName string) (*caches.GenIDTwoWayMap[int, string], error) {
-	initial, err := queryDict(db, tableName)
-	return caches.NewCachedDictTable(initial, genInsertDictTable(db, tableName)), err
-}
-
-func queryDict(db *sql.DB, tableName string) (ret map[int]string, err error) {
-	ret = map[int]string{}
-	rows, err := db.QueryContext(context.Background(), `select id, name from `+tableName)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return ret, nil
-		}
-		return ret, err
-	}
-	defer rows.Close()
-	var (
-		id   int
-		name string
-	)
-	for rows.Next() {
-		err = rows.Scan(&id, &name)
-		if err != nil {
-			return ret, err
-		}
-		ret[id] = name
-	}
-	return
-}
-
-func genInsertDictTable(db *sql.DB, tableName string) caches.GenIDFn[int, string] {
-	return func(v string) (ret int, err error) {
-		err = db.QueryRowContext(context.Background(), `select id from `+tableName+` where name = $1`, v).Scan(&ret)
-		if err == nil {
-			return
-		}
-		if errors.Is(err, sql.ErrNoRows) {
-			err = db.QueryRowContext(context.Background(), `with res as (insert into `+tableName+` (name) values ($1) on conflict do nothing returning id)
-select id from res
-union all
-select id from `+tableName+` where name=$1
-limit 1`, v).Scan(&ret)
-		}
-		return
-	}
 }
 
 func initDb(dbpath string) (*duckdb.Connector, *sql.DB, error) {
@@ -113,34 +38,21 @@ func initDb(dbpath string) (*duckdb.Connector, *sql.DB, error) {
 	if err != nil {
 		return nil, nil, err
 	}
-	for _, dictName := range []string{"level_names", "mission_names", "vehicle_names", "weapon_names"} {
-		_, err = db.ExecContext(context.Background(), `create sequence if not exists `+dictName+`_id_seq;`)
-		if err != nil {
-			return nil, nil, err
-		}
-		_, err = db.ExecContext(context.Background(), `create table if not exists `+dictName+` (id integer primary key default nextval('`+dictName+`_id_seq'), name text not null unique);`)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-	if err != nil {
-		return nil, nil, err
-	}
 	_, err = db.ExecContext(context.Background(), `create table if not exists kills (
 	session ubigint not null,
 	session_time timestamp not null,
 	kill_time ubigint not null,
-	level integer references level_names (id) not null,
-	mission integer references mission_names (id) not null,
+	level varchar not null,
+	mission varchar not null,
 	killer_id ubigint not null,
 	killer_team utinyint not null,
-	killer_vehicle integer references vehicle_names (id) not null,
+	killer_vehicle varchar not null,
 	killer_posx real not null,
 	killer_posz real not null,
-	weapon integer references weapon_names (id) not null,
+	weapon varchar not null,
 	victim_id ubigint not null,
 	victim_team utinyint not null,
-	victim_vehicle integer references vehicle_names (id) not null,
+	victim_vehicle varchar not null,
 	victim_posx real not null,
 	victim_posz real not null
 );`)
@@ -172,50 +84,9 @@ type Kill struct {
 type KillsStorage struct {
 	dbConnector *duckdb.Connector
 	db          *sql.DB
-
-	lock      sync.Mutex
-	cLevels   *caches.GenIDTwoWayMap[int, string]
-	cMissions *caches.GenIDTwoWayMap[int, string]
-	cVehicles *caches.GenIDTwoWayMap[int, string]
-	cWeapons  *caches.GenIDTwoWayMap[int, string]
 }
 
 func (s *KillsStorage) StoreKills(toinsert []Kill) error {
-	s.lock.Lock()
-	idsLevel := make([]int, len(toinsert))
-	idsMission := make([]int, len(toinsert))
-	idsKillerVehicle := make([]int, len(toinsert))
-	idsVictimVehicle := make([]int, len(toinsert))
-	idsWeapon := make([]int, len(toinsert))
-	var err error
-	for i, k := range toinsert {
-		idsLevel[i], err = s.cLevels.GetIDNOLOCK(k.Level)
-		if err != nil {
-			s.lock.Unlock()
-			return fmt.Errorf("get id of level %q (kill %d): %w", k.Level, i, err)
-		}
-		idsMission[i], err = s.cMissions.GetIDNOLOCK(k.Mission)
-		if err != nil {
-			s.lock.Unlock()
-			return fmt.Errorf("get id of mission %q (kill %d): %w", k.Level, i, err)
-		}
-		idsKillerVehicle[i], err = s.cVehicles.GetIDNOLOCK(k.KillerVehicle)
-		if err != nil {
-			s.lock.Unlock()
-			return fmt.Errorf("get id of killer vehicle %q (kill %d): %w", k.KillerVehicle, i, err)
-		}
-		idsWeapon[i], err = s.cWeapons.GetIDNOLOCK(k.Weapon)
-		if err != nil {
-			s.lock.Unlock()
-			return fmt.Errorf("get id of weapon %q (kill %d): %w", k.Weapon, i, err)
-		}
-		idsVictimVehicle[i], err = s.cVehicles.GetIDNOLOCK(k.VictimVehicle)
-		if err != nil {
-			s.lock.Unlock()
-			return fmt.Errorf("get id of victim vehicle %q (kill %d): %w", k.VictimVehicle, i, err)
-		}
-	}
-	s.lock.Unlock()
 	conn, err := s.dbConnector.Connect(context.Background())
 	if err != nil {
 		return err
@@ -226,11 +97,11 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 		return err
 	}
 	defer appender.Close()
-	for i, k := range toinsert {
+	for _, k := range toinsert {
 		sessionTime := time.Unix(int64(k.SessionTime), 0)
-		err = appender.AppendRow(k.Session, sessionTime, k.KillTime, idsLevel[i], idsMission[i],
-			k.KillerID, k.KillerTeam, idsKillerVehicle[i], k.KillerPosX, k.KillerPosZ, idsWeapon[i],
-			k.VictimID, k.VictimTeam, idsVictimVehicle[i], k.VictimPosX, k.VictimPosZ)
+		err = appender.AppendRow(k.Session, sessionTime, k.KillTime, k.Level, k.Mission,
+			k.KillerID, k.KillerTeam, k.KillerVehicle, k.KillerPosX, k.KillerPosZ, k.Weapon,
+			k.VictimID, k.VictimTeam, k.VictimVehicle, k.VictimPosX, k.VictimPosZ)
 		if err != nil {
 			os.WriteFile("err.spew", []byte(spew.Sdump(toinsert)), 0644)
 			return fmt.Errorf("kills insert: %w", err)
@@ -243,27 +114,11 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 	return nil
 }
 
-func (s *KillsStorage) GetMeta() (levels, missions, vehicles, weapons []string) {
-	s.lock.Lock()
-	levels = slices.Collect(maps.Values(s.cLevels.Values))
-	missions = slices.Collect(maps.Values(s.cMissions.Values))
-	vehicles = slices.Collect(maps.Values(s.cVehicles.Values))
-	weapons = slices.Collect(maps.Values(s.cWeapons.Values))
-	s.lock.Unlock()
-	return
-}
-
-func (s *KillsStorage) GetDictLevels() (levels map[int]string) {
-	s.lock.Lock()
-	levels = maps.Clone(s.cLevels.Values)
-	s.lock.Unlock()
-	return
-}
-
-func (s *KillsStorage) GetDictVehicles() (vehicles map[int]string) {
-	s.lock.Lock()
-	vehicles = maps.Clone(s.cVehicles.Values)
-	s.lock.Unlock()
+func (s *KillsStorage) GetVehicles() (vehicles []string, err error) {
+	err = s.db.QueryRow(`select array_agg(distinct v) from (
+		select distinct killer_vehicle as v from kills
+		union all
+		select distinct victim_vehicle as v from kills);`).Scan(&vehicles)
 	return
 }
 
@@ -273,42 +128,18 @@ type QueryConditions struct {
 }
 
 func (s *KillsStorage) QueryWithLevel(q *QueryConditions, level string) bool {
-	s.lock.Lock()
-	levelID, ok := s.cLevels.GetExistingIDNOLOCK(level)
-	s.lock.Unlock()
-	if !ok {
-		return false
-	}
-	q.whereArgs = append(q.whereArgs, levelID)
+	q.whereArgs = append(q.whereArgs, level)
 	q.whereConds = append(q.whereConds, fmt.Sprintf("level = $%d", len(q.whereArgs)))
 	return true
 }
 
 func (s *KillsStorage) QueryWithKillerVehicles(q *QueryConditions, vehicles []string) {
-	s.lock.Lock()
-	vehicleIDs := make([]int, 0, len(vehicles))
-	for _, v := range vehicles {
-		id, ok := s.cVehicles.GetExistingIDNOLOCK(v)
-		if ok {
-			vehicleIDs = append(vehicleIDs, id)
-		}
-	}
-	s.lock.Unlock()
-	q.whereArgs = append(q.whereArgs, vehicleIDs)
+	q.whereArgs = append(q.whereArgs, vehicles)
 	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_vehicle = any($%d)", len(q.whereArgs)))
 }
 
 func (s *KillsStorage) QueryWithVictimVehicles(q *QueryConditions, vehicles []string) {
-	s.lock.Lock()
-	vehicleIDs := make([]int, 0, len(vehicles))
-	for _, v := range vehicles {
-		id, ok := s.cVehicles.GetExistingIDNOLOCK(v)
-		if ok {
-			vehicleIDs = append(vehicleIDs, id)
-		}
-	}
-	s.lock.Unlock()
-	q.whereArgs = append(q.whereArgs, vehicleIDs)
+	q.whereArgs = append(q.whereArgs, vehicles)
 	q.whereConds = append(q.whereConds, fmt.Sprintf("victim_vehicle = any($%d)", len(q.whereArgs)))
 }
 
@@ -431,7 +262,7 @@ type AmountsByLevelRow struct {
 }
 
 func (s *KillsStorage) GetAmountsByLevel(ctx context.Context) ([]AmountsByLevelRow, error) {
-	rows, err := s.db.QueryContext(ctx, `select name, count(*) from kills left join level_names on level_names.id = kills.level group by 1 order by 2 desc;`)
+	rows, err := s.db.QueryContext(ctx, `select level, count(*) from kills group by 1 order by 2 desc;`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return []AmountsByLevelRow{}, nil
@@ -463,7 +294,7 @@ func (s *KillsStorage) GetAmountsByDay(ctx context.Context) (map[time.Time]int, 
 }
 
 func (s *KillsStorage) GetAmountsByKillerVehicle(ctx context.Context) (map[string]int, error) {
-	rows, err := s.db.QueryContext(ctx, `select vn.name, count(*) from kills left join vehicle_names as vn on vn.id = killer_vehicle group by vn.name`)
+	rows, err := s.db.QueryContext(ctx, `select killer_vehicle, count(*) from kills group by killer_vehicle`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return map[string]int{}, nil
@@ -481,7 +312,7 @@ func (s *KillsStorage) GetAmountsByKillerVehicle(ctx context.Context) (map[strin
 }
 
 func (s *KillsStorage) GetAmountsByVictimVehicle(ctx context.Context) (map[string]int, error) {
-	rows, err := s.db.QueryContext(ctx, `select vn.name, count(*) from kills left join vehicle_names as vn on vn.id = victim_vehicle group by vn.name`)
+	rows, err := s.db.QueryContext(ctx, `select victim_vehicle, count(*) from kills group by victim_vehicle`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return map[string]int{}, nil
@@ -500,14 +331,13 @@ func (s *KillsStorage) GetAmountsByVictimVehicle(ctx context.Context) (map[strin
 
 func (s *KillsStorage) GetAmountsByVehicle(ctx context.Context) (map[string]int, error) {
 	rows, err := s.db.QueryContext(ctx, `select
-		vn.name, sum(p.seen) as s
+		vehicle, sum(p.seen) as s
 	from kills k
 	cross join lateral (
   values
     (k.killer_vehicle, 1),
     (k.victim_vehicle, 1)
 	) as p(vehicle, seen)
-	left join vehicle_names as vn on vn.id = p.vehicle
 	group by vn.name
 	order by s desc`)
 	if err != nil {
