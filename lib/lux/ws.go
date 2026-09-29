@@ -34,9 +34,6 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 
 	var wg sync.WaitGroup
 	var errWrite, errRead error
-	pingreply := make(chan []byte, 8)
-	var pingTimingsLock sync.Mutex
-	lastPongRecieved := time.Now()
 
 	wg.Go(func() {
 		defer log.Info().Msg("write pump exited")
@@ -52,12 +49,6 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 				return
 			case <-shouldCloseWriter:
 				return
-			case v := <-pingreply:
-				errWrite = sendFrame(ws, websocket.PongFrame, v)
-				if errWrite != nil {
-					wsClose()
-					return
-				}
 			case v, ok := <-preferences:
 				if !ok {
 					wsClose()
@@ -69,20 +60,6 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 					return
 				}
 				log.Info().Msg("sent preferences")
-			case <-time.After(10 * time.Second):
-				pingTimingsLock.Lock()
-				if time.Since(lastPongRecieved) > 30*time.Second {
-					log.Error().Msg("ping timeout")
-					pingTimingsLock.Unlock()
-					wsClose()
-					return
-				}
-				pingTimingsLock.Unlock()
-				errWrite = sendFrame(ws, websocket.PingFrame, []byte(time.Now().GoString()))
-				if errWrite != nil {
-					wsClose()
-					return
-				}
 			}
 		}
 	})
@@ -109,12 +86,6 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 			switch msgType {
 			default:
 				log.Warn().Int("type", int(msgType)).Msg("unknown websocket frame from lux")
-			case websocket.PongFrame:
-				pingTimingsLock.Lock()
-				lastPongRecieved = time.Now()
-				pingTimingsLock.Unlock()
-			case websocket.PingFrame:
-				pingreply <- msg
 			case websocket.TextFrame:
 				log.Info().Str("data", string(msg)).Msg("text frame")
 			case websocket.BinaryFrame:
@@ -201,18 +172,6 @@ func dialLux(log zerolog.Logger, token string) (*websocket.Conn, error) {
 	ws, err := websocket.NewClient(wsConfig, wsConn)
 	wsConn.SetDeadline(time.Time{})
 	return ws, err
-}
-
-func sendFrame(ws *websocket.Conn, payloadType byte, payload []byte) error {
-	fw, err := ws.NewFrameWriter(payloadType)
-	if err != nil {
-		return err
-	}
-	_, err = fw.Write(payload)
-	if err != nil {
-		return err
-	}
-	return fw.Close()
 }
 
 type wsInspectRWC struct {
