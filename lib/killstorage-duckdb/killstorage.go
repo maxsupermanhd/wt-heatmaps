@@ -349,7 +349,7 @@ func (s *KillsStorage) GetAmountsByVehicle(ctx context.Context) (map[string]int,
     (k.killer_vehicle, 1),
     (k.victim_vehicle, 1)
 	) as p(vehicle, seen)
-	group by vn.name
+	group by vehicle
 	order by s desc`)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
