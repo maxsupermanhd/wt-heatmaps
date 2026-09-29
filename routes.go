@@ -105,7 +105,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 		log.Err(err).Msg("level stats sorted")
 		return frontend.Page(frontend.TextNode("something went really wrong"))
 	}
-	vehicles, err := ks.GetVehicles()
+	vehicles, err := ks.GetVehicles(r.Context())
 	if err != nil {
 		log.Err(err).Msg("level stats sorted")
 		return frontend.Page(frontend.TextNode("something went really wrong"))
