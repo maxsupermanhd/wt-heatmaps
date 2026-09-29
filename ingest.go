@@ -131,7 +131,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 			select {
 			case <-reconnectExitChan:
 				return
-			case <-time.After(5 * time.Second):
+			case <-time.After(10 * time.Second):
 			}
 			ingestCurrentPreferencesLock.Lock()
 			if ingestCurrentPreferences.Populated() {
