@@ -50,6 +50,10 @@ func (i ingestPreferences) MarshalJSON() ([]byte, error) {
 	})
 }
 
+func (i ingestPreferences) Populated() bool {
+	return len(i.reqBrs) > 0 || len(i.reqMaps) > 0
+}
+
 var (
 	ingestStatSessionRate5m = &atomic.Int64{}
 	ingestStatKillsRate5m   = &atomic.Int64{}
@@ -129,6 +133,11 @@ func ingestRoutine(exitChan <-chan struct{}) {
 				return
 			case <-time.After(5 * time.Second):
 			}
+			ingestCurrentPreferencesLock.Lock()
+			if ingestCurrentPreferences.Populated() {
+				preferencesChan <- ingestCurrentPreferences
+			}
+			ingestCurrentPreferencesLock.Unlock()
 			err := lux.FetchFromLux(log.Logger, ctx.Done(), carvesChan, preferencesChan, luxToken)
 			log.Err(err).Msg("lux fetch exited")
 		}
