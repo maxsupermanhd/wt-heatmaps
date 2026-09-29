@@ -107,6 +107,8 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 				return
 			}
 			switch msgType {
+			default:
+				log.Warn().Int("type", int(msgType)).Msg("unknown websocket frame from lux")
 			case websocket.PongFrame:
 				pingTimingsLock.Lock()
 				lastPongRecieved = time.Now()
