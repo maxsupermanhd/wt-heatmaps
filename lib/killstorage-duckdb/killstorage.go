@@ -250,7 +250,7 @@ type VehicleAreaStat struct {
 
 func (s *KillsStorage) GetVehicleStatsByArea(ctx context.Context, conds *QueryConditions, limit int) ([]VehicleAreaStat, error) {
 	q := `SELECT
-  n.name,
+  p.vehicle,
   COUNT(*) FILTER (WHERE p.delta > 0) AS kills,
   COUNT(*) FILTER (WHERE p.delta < 0) AS deaths
 FROM kills t
@@ -259,7 +259,6 @@ CROSS JOIN LATERAL (
     (t.killer_vehicle, t.killer_posx, t.killer_posz,  1),
     (t.victim_vehicle, t.victim_posx, t.victim_posz, -1)
 ) AS p(vehicle, x, z, delta)
-JOIN vehicle_names n ON n.id = p.vehicle
 ` + conds.WhereCase() + `
 GROUP BY n.name
 ORDER BY COUNT(*) DESC`
