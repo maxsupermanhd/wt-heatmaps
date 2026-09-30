@@ -260,7 +260,7 @@ CROSS JOIN LATERAL (
     (t.victim_vehicle, t.victim_posx, t.victim_posz, -1)
 ) AS p(vehicle, x, z, delta)
 ` + conds.WhereCase() + `
-GROUP BY n.name
+GROUP BY p.vehicle
 ORDER BY COUNT(*) DESC`
 	if limit > 0 {
 		q += ` LIMIT ` + strconv.Itoa(limit) + `;`
