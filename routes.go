@@ -38,6 +38,8 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /areastats", httpLog(compRenderFn(serveAreaStats)))
 	mux.HandleFunc("GET /api/v1/region", httpLog(serveRegion))
 
+	mux.HandleFunc("GET /debug/duckdbmemory", httpLog(serveDebugDuckdbMemory))
+
 	mux.HandleFunc("GET /missions...", httpLog(servePermaRedirect("/")))
 	mux.HandleFunc("GET /clans...", httpLog(servePermaRedirect("/")))
 	mux.HandleFunc("GET /players...", httpLog(servePermaRedirect("/")))
@@ -372,6 +374,19 @@ func ggStrings(ctx *gg.Context, ox, oy float64, colBg, colFg color.RGBA, vals ..
 		oy += 2
 	}
 	return ctx
+}
+
+func serveDebugDuckdbMemory(w http.ResponseWriter, r *http.Request) {
+	ret, err := ks.DebugMemory(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error() + "\n\n"))
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+	e := json.NewEncoder(w)
+	e.SetIndent("", "\t")
+	e.Encode(ret)
 }
 
 func servePermaRedirect(location string) func(w http.ResponseWriter, r *http.Request) {

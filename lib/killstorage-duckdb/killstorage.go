@@ -398,6 +398,32 @@ func (s *KillsStorage) GetAmountsOfInteresting(ctx context.Context, ids []uint64
 	})
 }
 
+type MemoryStatValue struct {
+	Memory  int
+	Storage int
+}
+
+func (s *KillsStorage) DebugMemory(ctx context.Context) (map[string]MemoryStatValue, error) {
+	rows, err := s.db.QueryContext(ctx, `SELECT * FROM duckdb_memory()`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return map[string]MemoryStatValue{}, nil
+		}
+		return nil, err
+	}
+	var s1 string
+	var s2, s3 int
+	ret := map[string]MemoryStatValue{}
+	err = ForEachRow(rows, []any{&s1, &s2, &s3}, func() error {
+		ret[s1] = MemoryStatValue{
+			Memory:  s2,
+			Storage: s3,
+		}
+		return nil
+	})
+	return ret, err
+}
+
 func (s *KillsStorage) Close() {
 	s.db.Close()
 }
