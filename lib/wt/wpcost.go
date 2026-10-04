@@ -13,6 +13,8 @@ type WpcostVehicle struct {
 	EconomicRankHistorical int    `json:"economicRankHistorical"`
 	CostGold               int    `json:"costGold"`
 	Event                  string `json:"event"`
+	Country                string `json:"country"`
+	UnitClass              string `json:"unitClass"`
 }
 
 func (v WpcostVehicle) IsPremium() bool {
@@ -23,37 +25,39 @@ func (v WpcostVehicle) IsEvent() bool {
 	return v.Event != ""
 }
 
-func (val *WpcostVehicle) UnmarshalJSON(b []byte) error {
-	if len(b) == 0 {
-		return errors.New("empty unmarshal element")
+func unmarshalWpcostBytes(wpcostJsonReader io.Reader) (map[string]*WpcostVehicle, int, error) {
+	dec := json.NewDecoder(wpcostJsonReader)
+	ret := make(map[string]*WpcostVehicle)
+	var rankMax int
+
+	_, err := dec.Token()
+	if err != nil {
+		return nil, 0, err
 	}
-	if val == nil {
-		return errors.New("nil pointer")
-	}
-	switch b[0] {
-	case '{':
-		type tmp struct {
-			EconomicRankHistorical int    `json:"economicRankHistorical"`
-			CostGold               int    `json:"costGold"`
-			Event                  string `json:"event"`
-		}
-		var tmpval tmp
-		err := json.Unmarshal(b, &tmpval)
+	for dec.More() {
+		tok, err := dec.Token()
 		if err != nil {
-			return err
+			return nil, 0, err
 		}
-		val.EconomicRankHistorical = tmpval.EconomicRankHistorical
-		val.CostGold = tmpval.CostGold
-		val.Event = tmpval.Event
-	default:
-		var tmpval int
-		err := json.Unmarshal(b, &tmpval)
-		if err != nil {
-			return err
+		key, ok := tok.(string)
+		if !ok {
+			return nil, 0, fmt.Errorf("key %v not string", tok)
 		}
-		val.EconomicRankHistorical = tmpval
+
+		if key == "economicRankMax" {
+			if err := dec.Decode(&rankMax); err != nil {
+				return nil, 0, err
+			}
+			continue
+		}
+
+		var value WpcostVehicle
+		if err := dec.Decode(&value); err != nil {
+			return nil, 0, fmt.Errorf("key %q: %w", key, err)
+		}
+		ret[key] = &value
 	}
-	return nil
+	return ret, rankMax, nil
 }
 
 type VehicleEconomyCatalog struct {
@@ -63,16 +67,10 @@ type VehicleEconomyCatalog struct {
 }
 
 func NewVehicleEconomyCatalog(wpcostJsonReader io.Reader) (*VehicleEconomyCatalog, error) {
-	var wpcost map[string]*WpcostVehicle
-	err := json.NewDecoder(wpcostJsonReader).Decode(&wpcost)
+	wpcost, rankMax, err := unmarshalWpcostBytes(wpcostJsonReader)
 	if err != nil {
 		return nil, err
 	}
-	rankMax, ok := wpcost["economicRankMax"]
-	if !ok {
-		return nil, errors.New("economicRankMax not found in json")
-	}
-	delete(wpcost, "economicRankMax")
 	var errs []error
 	for k, v := range wpcost {
 		if strings.IndexAny(k, "QWERTYUIOPASDFGHJKLZXCVBNM") != -1 {
@@ -83,7 +81,7 @@ func NewVehicleEconomyCatalog(wpcostJsonReader io.Reader) (*VehicleEconomyCatalo
 			wpcost[strings.ToLower(k)] = v
 		}
 	}
-	byBattleRating := make([][]string, rankMax.EconomicRankHistorical+1)
+	byBattleRating := make([][]string, rankMax+1)
 	for k, v := range wpcost {
 		if v.EconomicRankHistorical < 0 || v.EconomicRankHistorical >= len(byBattleRating) {
 			continue
@@ -99,7 +97,7 @@ func NewVehicleEconomyCatalog(wpcostJsonReader io.Reader) (*VehicleEconomyCatalo
 	ret := &VehicleEconomyCatalog{
 		Vehicles:       wpcost,
 		byBattleRating: byBattleRating,
-		rankMax:        rankMax.EconomicRankHistorical,
+		rankMax:        rankMax,
 	}
 	return ret, errors.Join(errs...)
 }

@@ -39,6 +39,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /api/v1/region", httpLog(serveRegion))
 
 	mux.HandleFunc("GET /debug/duckdbmemory", httpLog(serveDebugDuckdbMemory))
+	mux.HandleFunc("GET /debug/wpcost", httpLog(serveDebugWpcost))
 
 	mux.HandleFunc("GET /missions...", httpLog(servePermaRedirect("/")))
 	mux.HandleFunc("GET /clans...", httpLog(servePermaRedirect("/")))
@@ -133,8 +134,8 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	kq, ok := buildKillQuery(q, level)
-	if !ok {
+	kq := buildKillQuery(q, level)
+	if kq == nil {
 		w.WriteHeader(204)
 		return
 	}
@@ -183,10 +184,10 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	log.Info().Dur("perf", time.Since(perf)).Int("nPix", len(tally)).Int("nDp", totalN).Msg("heat")
 }
 
-func buildKillQuery(q url.Values, level string) (*killstorage.QueryConditions, bool) {
+func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
 	kq := &killstorage.QueryConditions{}
 	if !ks.QueryWithLevel(kq, level) {
-		return nil, false
+		return nil
 	}
 	if val := urlValueInt(q, "team"); val != nil {
 		kq.QueryWithTeam(*val)
@@ -197,19 +198,90 @@ func buildKillQuery(q url.Values, level string) (*killstorage.QueryConditions, b
 	if val := urlValueInt(q, "killTimeMax"); val != nil {
 		kq.QueryWithKillTimeMax(time.Duration(*val) * time.Second)
 	}
-	if val := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "killerBattleRatingMin"), urlValueInt(q, "killerBattleRatingMax")); val != nil {
-		for i := range val {
-			val[i] = "tankmodels/" + val[i]
+	killerVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "killerBattleRatingMin"), urlValueInt(q, "killerBattleRatingMax"))
+	if val := q.Get("killerVehicleClass"); val != "" {
+		log.Info().Str("killerVehicleClass", val).Msg("killerVehicleClass")
+		if len(killerVehicles) == 0 {
+			for k, v := range vehicleEconomyCatalog.Vehicles {
+				if v.UnitClass == val {
+					killerVehicles = append(killerVehicles, k)
+				}
+			}
+		} else {
+			filtered := []string{}
+			for _, v := range killerVehicles {
+				if vehicleEconomyCatalog.Vehicles[v].UnitClass == val {
+					filtered = append(filtered, v)
+				}
+			}
+			killerVehicles = filtered
 		}
-		ks.QueryWithKillerVehicles(kq, val)
 	}
-	if val := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax")); val != nil {
-		for i := range val {
-			val[i] = "tankmodels/" + val[i]
+	if val := q.Get("killerVehicleCountry"); val != "" {
+		if len(killerVehicles) == 0 {
+			for k, v := range vehicleEconomyCatalog.Vehicles {
+				if v.Country == val {
+					killerVehicles = append(killerVehicles, k)
+				}
+			}
+		} else {
+			filtered := []string{}
+			for _, v := range killerVehicles {
+				if vehicleEconomyCatalog.Vehicles[v].Country == val {
+					filtered = append(filtered, v)
+				}
+			}
+			killerVehicles = filtered
 		}
-		ks.QueryWithVictimVehicles(kq, val)
 	}
-	return kq, true
+	if len(killerVehicles) > 0 {
+		for i := range killerVehicles {
+			killerVehicles[i] = "tankmodels/" + killerVehicles[i]
+		}
+		ks.QueryWithKillerVehicles(kq, killerVehicles)
+	}
+	victimVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax"))
+	if val := q.Get("victimVehicleClass"); val != "" {
+		if len(victimVehicles) == 0 {
+			for k, v := range vehicleEconomyCatalog.Vehicles {
+				if v.UnitClass == val {
+					victimVehicles = append(victimVehicles, k)
+				}
+			}
+		} else {
+			filtered := []string{}
+			for _, v := range victimVehicles {
+				if vehicleEconomyCatalog.Vehicles[v].UnitClass == val {
+					filtered = append(filtered, v)
+				}
+			}
+			victimVehicles = filtered
+		}
+	}
+	if val := q.Get("victimVehicleCountry"); val != "" {
+		if len(victimVehicles) == 0 {
+			for k, v := range vehicleEconomyCatalog.Vehicles {
+				if v.Country == val {
+					victimVehicles = append(victimVehicles, k)
+				}
+			}
+		} else {
+			filtered := []string{}
+			for _, v := range victimVehicles {
+				if vehicleEconomyCatalog.Vehicles[v].Country == val {
+					filtered = append(filtered, v)
+				}
+			}
+			victimVehicles = filtered
+		}
+	}
+	if len(victimVehicles) > 0 {
+		for i := range victimVehicles {
+			victimVehicles[i] = "tankmodels/" + victimVehicles[i]
+		}
+		ks.QueryWithVictimVehicles(kq, victimVehicles)
+	}
+	return kq
 }
 
 const areaStatsLimit = 25
@@ -231,8 +303,8 @@ func serveAreaStats(w http.ResponseWriter, r *http.Request) templ.Component {
 	}
 	x0, z0, x1, z1 := levelOffsets.TankMapAreaToWorld(box)
 
-	kq, ok := buildKillQuery(q, level)
-	if !ok {
+	kq := buildKillQuery(q, level)
+	if kq == nil {
 		w.WriteHeader(204)
 		return nil
 	}
@@ -283,8 +355,8 @@ func serveRegion(w http.ResponseWriter, r *http.Request) {
 	}
 	x0, z0, x1, z1 := levelOffsets.TankMapAreaToWorld(box)
 
-	kq, ok := buildKillQuery(q, level)
-	if !ok {
+	kq := buildKillQuery(q, level)
+	if kq == nil {
 		w.WriteHeader(204)
 		return
 	}
@@ -374,6 +446,13 @@ func ggStrings(ctx *gg.Context, ox, oy float64, colBg, colFg color.RGBA, vals ..
 		oy += 2
 	}
 	return ctx
+}
+
+func serveDebugWpcost(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	e := json.NewEncoder(w)
+	e.SetIndent("", "\t")
+	e.Encode(vehicleEconomyCatalog.Vehicles)
 }
 
 func serveDebugDuckdbMemory(w http.ResponseWriter, r *http.Request) {

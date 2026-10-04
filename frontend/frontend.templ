@@ -167,10 +167,20 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 					to
 					@brSelector("killerBattleRatingMax", battleRatingMax)
 					<br/>
+					class
+					@vehicleClassSelector("killerVehicleClass")
+					country
+					@vehicleCountrySelector("killerVehicleCountry")
+					<br/>
 					Victim vehicle BR from
 					@brSelector("victimBattleRatingMin", battleRatingMax)
 					to
 					@brSelector("victimBattleRatingMax", battleRatingMax)
+					<br/>
+					class
+					@vehicleClassSelector("victimVehicleClass")
+					country
+					@vehicleCountrySelector("victimVehicleCountry")
 				</p>
 				<p>
 					<button type="submit" id="settingsSubmitBtn"><span style="font-size: larger;font-weight: bold;">Load</span></button>
@@ -197,6 +207,44 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 		</div>
 	</div>
 	<script type="module" src="/static/main.js"></script>
+}
+
+templ vehicleClassSelector(name string) {
+	<select name={ name }>
+		<option selected></option>
+		<option value="exp_assault">assault</option>
+		<option value="exp_bomber">bomber</option>
+		<option value="exp_cruiser">cruiser</option>
+		<option value="exp_destroyer">destroyer</option>
+		<option value="exp_fighter">fighter</option>
+		<option value="exp_gun_boat">gun_boat</option>
+		<option value="exp_heavy_tank">heavy_tank</option>
+		<option value="exp_helicopter">helicopter</option>
+		<option value="exp_human">human</option>
+		<option value="exp_naval_ferry_barge">naval_ferry_barge</option>
+		<option value="exp_SPAA">SPAA</option>
+		<option value="exp_submarine_chaser">submarine_chaser</option>
+		<option value="exp_tank">tank</option>
+		<option value="exp_tank_destroyer">tank_destroyer</option>
+		<option value="exp_torpedo_boat">torpedo_boat</option>
+		<option value="exp_torpedo_gun_boat">torpedo_gun_boat</option>
+	</select>
+}
+
+templ vehicleCountrySelector(name string) {
+	<select name={ name }>
+		<option selected></option>
+		<option value="country_britain">britain</option>
+		<option value="country_china">china</option>
+		<option value="country_france">france</option>
+		<option value="country_germany">germany</option>
+		<option value="country_israel">israel</option>
+		<option value="country_italy">italy</option>
+		<option value="country_japan">japan</option>
+		<option value="country_sweden">sweden</option>
+		<option value="country_usa">usa</option>
+		<option value="country_ussr">ussr</option>
+	</select>
 }
 
 func BRString(i int) string {
@@ -311,7 +359,7 @@ templ VehicleLabel(v Vehicle) {
 	}
 	<a href={ "https://wiki.warthunder.com/unit/" + v.ID } target="_blank">
 		if v.IsEvent {
-			<i> { v.ID } </i>
+			<i>{ v.ID } </i>
 		} else {
 			{ v.ID }
 		}
