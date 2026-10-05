@@ -7,14 +7,14 @@ import (
 	"image"
 	"image/png"
 	"io"
-	"main/lib/caches"
 	"net/http"
 	"strings"
 
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"golang.org/x/image/draw"
 )
 
-var cachedTankmaps *caches.FetchFileCache
+var cachedTankmaps *fclcache.FetchFileCache
 
 func tankmapFetchB64LEV(kb64 string) ([]byte, error) {
 	kb, err := base64.StdEncoding.DecodeString(kb64)

@@ -6,7 +6,6 @@ import (
 	"image"
 	"image/color"
 	"main/frontend"
-	"main/lib/caches"
 	killstorage "main/lib/killstorage-duckdb"
 	"math"
 	"net/http"
@@ -19,6 +18,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/fogleman/gg"
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"github.com/rs/zerolog/log"
 )
 
@@ -51,17 +51,17 @@ func makeHTTPServeMux() http.HandlerFunc {
 
 var (
 	waitroomChecksMu sync.Mutex
-	waitroomChecks   = map[string][]caches.ValueCacheCommon{}
+	waitroomChecks   = map[string][]fclcache.ValueCacheCommon{}
 )
 
-func ensureCached(work http.HandlerFunc, checks ...caches.ValueCacheCommon) http.HandlerFunc {
+func ensureCached(work http.HandlerFunc, checks ...fclcache.ValueCacheCommon) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		waitroomChecksMu.Lock()
 		waitroomChecks[r.URL.Path] = checks
 		waitroomChecksMu.Unlock()
 		for _, c := range checks {
 			if !c.Ready() {
-				c.Refresh()
+				c.Refresh(r.Context())
 			}
 		}
 		for _, c := range checks {
@@ -88,7 +88,7 @@ func seveWaitroom(w http.ResponseWriter, r *http.Request) templ.Component {
 	isReady := true
 	for _, c := range checks {
 		if !c.Ready() {
-			c.Refresh()
+			c.Refresh(r.Context())
 			isReady = false
 		}
 	}
@@ -103,7 +103,7 @@ func seveWaitroom(w http.ResponseWriter, r *http.Request) templ.Component {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
-	levels, err := levelStatsSorted.Get()
+	levels, err := levelStatsSorted.Get(r.Context())
 	if err != nil {
 		log.Err(err).Msg("level stats sorted")
 		return frontend.Page(frontend.TextNode("something went really wrong"))

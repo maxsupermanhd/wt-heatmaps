@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"main/frontend"
-	"main/lib/caches"
 	"maps"
 	"net/http"
 	"slices"
@@ -13,12 +12,11 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"github.com/rs/zerolog/log"
 )
 
-var cachedStatsTables = caches.NewValueRefresh(wb, 30*time.Minute, func() ([]frontend.StatsTable, error) {
-	return collectStatsTables(context.Background())
-})
+var cachedStatsTables = fclcache.NewValueRefresh(wb, 30*time.Minute, collectStatsTables)
 
 func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 	ret := []frontend.StatsTable{}
@@ -223,8 +221,8 @@ func statsGetInteresting(ctx context.Context) ([]frontend.StatsTable, error) {
 	}}, nil
 }
 
-func serveStats(_ http.ResponseWriter, _ *http.Request) templ.Component {
-	tables, _ := cachedStatsTables.Get()
+func serveStats(_ http.ResponseWriter, r *http.Request) templ.Component {
+	tables, _ := cachedStatsTables.Get(r.Context())
 	updatedAt := cachedStatsTables.LastRefresh()
 	return frontend.Page(frontend.Stats(tables, updatedAt, int(ingestStatSessionRate5m.Load()), int(ingestStatKillsRate5m.Load())))
 }

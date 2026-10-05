@@ -6,12 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"main/lib/caches"
 	killstorage "main/lib/killstorage-duckdb"
-	"main/lib/workerpool"
 	"os"
 	"os/signal"
 
+	"github.com/maxsupermanhd/flexcorallib/fcl"
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	goflexutils "github.com/maxsupermanhd/go-flexutils"
 	"github.com/maxsupermanhd/lac/v2"
 	"github.com/rs/zerolog"
@@ -19,11 +19,13 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
+var bgctx, bgctxcancel = signal.NotifyContext(context.Background(), os.Interrupt)
+
 var (
 	flConfigPath = flag.String("config", "config.json", "path to config json")
 	cfg          lac.Conf
 	ks           *killstorage.KillsStorage
-	wb           = workerpool.NewWorkerPool(2)
+	wb           = fcl.NewWorkerPool(bgctx, 2)
 )
 
 func main() {
@@ -37,7 +39,7 @@ func main() {
 		}))
 	log.Info().Msg("hello world")
 
-	cachedTankmaps = noerr(caches.NewFetchFileCache(cfg.GetDString("./cache/tankmaps/", "cacheTankmaps"), tankmapFetchB64LEV))
+	cachedTankmaps = noerr(fclcache.NewFetchFileCache(cfg.GetDString("./cache/tankmaps/", "cacheTankmaps"), tankmapFetchB64LEV))
 
 	var err error
 
@@ -56,17 +58,14 @@ func main() {
 	log.Info().Msg("loading level names")
 	initLevelNames()
 
-	ctx, ctxCancel := signal.NotifyContext(context.Background(), os.Interrupt)
-	defer ctxCancel()
-
 	stopHttp := goflexutils.StartBackgroundRoutine(log.Logger, "http", httpRoutine)
 	stopIngest := goflexutils.StartBackgroundRoutine(log.Logger, "ingest", ingestRoutine)
 
-	go reportCall(func() { levelStatsSorted.Refresh() }, "warming level sorting cache")
-	go reportCall(func() { cachedStatsTables.Refresh() }, "warming stat tables cache")
+	go reportCall(func() { levelStatsSorted.Refresh(bgctx) }, "warming level sorting cache")
+	go reportCall(func() { cachedStatsTables.Refresh(bgctx) }, "warming stat tables cache")
 
 	log.Info().Msg("init done")
-	<-ctx.Done()
+	<-bgctx.Done()
 	log.Info().Msg("shutting down")
 
 	stopIngest()

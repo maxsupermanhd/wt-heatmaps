@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"main/frontend"
-	"main/lib/caches"
 	"main/lib/imagecolorsort"
 	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/levelcoords"
@@ -13,19 +12,20 @@ import (
 	"strings"
 	"time"
 
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"github.com/rs/zerolog/log"
 )
 
 var (
 	levelByColorSorter = imagecolorsort.NewImageColorSort(tankmapFromCache)
-	levelAmountsCache  = caches.NewValueRefresh(wb, 30*time.Minute, func() ([]killstorage.AmountsByLevelRow, error) {
-		return ks.GetAmountsByLevel(context.Background())
+	levelAmountsCache  = fclcache.NewValueRefresh(wb, 30*time.Minute, func(ctx context.Context) ([]killstorage.AmountsByLevelRow, error) {
+		return ks.GetAmountsByLevel(ctx)
 	})
-	levelStatsSorted = caches.NewValueRefresh(wb, 30*time.Minute, getSortedLevelStats)
+	levelStatsSorted = fclcache.NewValueRefresh(wb, 30*time.Minute, getSortedLevelStats)
 )
 
-func getSortedLevelStats() ([]frontend.LevelStat, error) {
-	levelAmounts, err := levelAmountsCache.Get()
+func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
+	levelAmounts, err := levelAmountsCache.Get(ctx)
 	if err != nil {
 		return nil, err
 	}
