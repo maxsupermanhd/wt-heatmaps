@@ -8,6 +8,8 @@ package frontend
 import "github.com/a-h/templ"
 import templruntime "github.com/a-h/templ/runtime"
 
+import "runtime/debug"
+
 func About() templ.Component {
 	return templruntime.GeneratedTemplate(func(templ_7745c5c3_Input templruntime.GeneratedComponentInput) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_W, ctx := templ_7745c5c3_Input.Writer, templ_7745c5c3_Input.Context
@@ -29,7 +31,45 @@ func About() templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div style=\"max-width: 700px;margin-left: auto; margin-right: auto;\"><p>War Thunder Heatmaps is a small project aimed at revival of now defunct WT-Heatmaps project made by <a href=\"https://github.com/Sgambe33\">Sgambe33</a>. Everything you see on this website was made possible with <a href=\"https://github.com/maxsupermanhd/wrpl-inspector\">wrpl-inspector</a> and very helpful community members. Currently thunder.nanachi.party operates in close cooperation with <a href=\"https://wtapi.dev/\">Spectra WTApi</a> project.</p><p>Server renders kill-death delta for each map pixel (meter) on the given War Thunder ground map. Database contains only ground to ground kills and deaths, player account IDs, vehicle names, weapon (ammo) used and their positions. Only from realistic battles mode.<br>Blue indicates more people died there than made kills, red is reverse. Logically, avoid being at blue spots and go to or check out red ones. Black is used as intermediary color to show available but fair positions.<br>Also clearly shows comically overpowered or absurd positions.<br></p><p>Any help is appreciated, feel free to reach out with your suggestions/ideas. At the moment everything is powered by Golang and PostgreSQL. It allows for a lot of data rendering options and I am open for suggestions and contributions. If you are web developer (primarily frontend: styling, very light plain js and htmx tech) feel free to improve the website with your contributions. There are many TODOs that I am underqualified or too lazy to do.</p><p>If you want to use images or data generated/stored by the website feel free to contact me to get API or database access. API access is completely free with no strings attached. If you want something custom (either rendering or various data aggregates/views) it can be added.</p><p>You can contact me via:<ul><li><a href=\"https://discord.gg/2dTx8GdTj5\">Discord</a> (@flexcoral ID 343418440423309314)</li><li>Telegram @flexcoral</li><li>Discussions or issues on GitHub repositories of wrpl-inspector or wt-heatmaps</li><li>contact@nanachi.party</li></ul></p></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div style=\"max-width: 700px;margin-left: auto; margin-right: auto;\"><p>War Thunder Heatmaps is a small project aimed at revival of now defunct WT-Heatmaps project made by <a href=\"https://github.com/Sgambe33\">Sgambe33</a>. Everything you see on this website was made possible with <a href=\"https://github.com/maxsupermanhd/wrpl-inspector\">wrpl-inspector</a> and very helpful community members. Currently thunder.nanachi.party operates in close cooperation with <a href=\"https://wtapi.dev/\">Spectra WTApi</a> project.</p><p>Server renders kill-death delta for each map pixel (meter) on the given War Thunder ground map. Database contains only ground to ground kills and deaths, player account IDs, vehicle names, weapon (ammo) used and their positions. Only from realistic battles mode.<br>Blue indicates more people died there than made kills, red is reverse. Logically, avoid being at blue spots and go to or check out red ones. Black is used as intermediary color to show available but fair positions.<br>Also clearly shows comically overpowered or absurd positions.<br></p><p>Any help is appreciated, feel free to reach out with your suggestions/ideas. At the moment everything is powered by Golang and PostgreSQL. It allows for a lot of data rendering options and I am open for suggestions and contributions. If you are web developer (primarily frontend: styling, very light plain js and htmx tech) feel free to improve the website with your contributions. There are many TODOs that I am underqualified or too lazy to do.</p><p>If you want to use images or data generated/stored by the website feel free to contact me to get API or database access. API access is completely free with no strings attached. If you want something custom (either rendering or various data aggregates/views) it can be added.</p><p>You can contact me via:<ul><li><a href=\"https://discord.gg/2dTx8GdTj5\">Discord</a> (@flexcoral ID 343418440423309314)</li><li>Telegram @flexcoral</li><li>Discussions or issues on GitHub repositories of <a href=\"https://github.com/maxsupermanhd/wrpl-inspector\">wrpl-inspector</a> or <a href=\"https://github.com/maxsupermanhd/wt-heatmaps\">wt-heatmaps</a></li><li>contact@nanachi.party</li></ul></p><p>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		bi, ok := debug.ReadBuildInfo()
+		if !ok {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "ReadBuildInfo failed, can't tell what version we are running.")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		} else {
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 3, "Running <a href=\"https://github.com/maxsupermanhd/wt-heatmaps\">wt-heatmaps</a> version ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var2 string
+			templ_7745c5c3_Var2, templ_7745c5c3_Err = templ.JoinStringErrs(GetVCSSummary(bi.Settings))
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/about.templ`, Line: 51, Col: 119}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var2))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 4, "<br>On ")
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+			var templ_7745c5c3_Var3 string
+			templ_7745c5c3_Var3, templ_7745c5c3_Err = templ.JoinStringErrs(bi.GoVersion)
+			if templ_7745c5c3_Err != nil {
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/about.templ`, Line: 53, Col: 21}
+			}
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var3))
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 5, "</p></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

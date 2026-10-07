@@ -1,5 +1,7 @@
 package frontend
 
+import "runtime/debug"
+
 templ About() {
 	<div style="max-width: 700px;margin-left: auto; margin-right: auto;">
 		<p>
@@ -37,9 +39,19 @@ templ About() {
 			<ul>
 				<li><a href="https://discord.gg/2dTx8GdTj5">Discord</a> (@flexcoral ID 343418440423309314)</li>
 				<li>Telegram @flexcoral</li>
-				<li>Discussions or issues on GitHub repositories of wrpl-inspector or wt-heatmaps</li>
+				<li>Discussions or issues on GitHub repositories of <a href="https://github.com/maxsupermanhd/wrpl-inspector">wrpl-inspector</a> or <a href="https://github.com/maxsupermanhd/wt-heatmaps">wt-heatmaps</a></li>
 				<li>contact@nanachi.party</li>
 			</ul>
+		</p>
+		<p>
+			{{ bi, ok := debug.ReadBuildInfo() }}
+			if !ok {
+				ReadBuildInfo failed, can't tell what version we are running.
+			} else {
+				Running <a href="https://github.com/maxsupermanhd/wt-heatmaps">wt-heatmaps</a> version { GetVCSSummary(bi.Settings) }
+				<br/>
+				On { bi.GoVersion }
+			}
 		</p>
 	</div>
 }
