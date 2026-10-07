@@ -17,6 +17,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/natefinch/lumberjack.v2"
+
+	"github.com/google/gops/agent"
 )
 
 var bgctx, bgctxcancel = signal.NotifyContext(context.Background(), os.Interrupt)
@@ -38,6 +40,15 @@ func main() {
 			Compress: true,
 		}))
 	log.Info().Msg("hello world")
+
+	var gopsAgentStarted bool
+	if cfg.GetDBool(false, "gops") {
+		if err := agent.Listen(agent.Options{}); err != nil {
+			log.Err(err).Msg("gops agent listen")
+		} else {
+			gopsAgentStarted = true
+		}
+	}
 
 	cachedTankmaps = noerr(fclcache.NewFetchFileCache(cfg.GetDString("./cache/tankmaps/", "cacheTankmaps"), tankmapFetchB64LEV))
 
@@ -71,6 +82,10 @@ func main() {
 	stopIngest()
 	stopHttp()
 	ks.Close()
+
+	if gopsAgentStarted {
+		agent.Close()
+	}
 
 	log.Info().Msg("bye")
 }

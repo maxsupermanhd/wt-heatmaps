@@ -8,6 +8,7 @@ require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 	github.com/duckdb/duckdb-go/v2 v2.10506.0
 	github.com/fogleman/gg v1.3.0
+	github.com/google/gops v0.3.29
 	github.com/maxsupermanhd/flexcorallib v0.0.0-20261005171452-af34253c3b3c
 	github.com/maxsupermanhd/go-flexutils v0.0.0-20260516211527-904038f0a13a
 	github.com/maxsupermanhd/lac/v2 v2.0.0-20250603135754-053986d885c5
