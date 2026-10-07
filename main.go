@@ -44,7 +44,7 @@ func main() {
 	var err error
 
 	log.Info().Msg("connecting to database")
-	ks, err = killstorage.NewKillsStorage(cfg.GetDString(`database=thunder user=thunder password=warthunder_analytics_or_something`, "db"))
+	ks, err = killstorage.NewKillsStorage(cfg.GetDString(`wt-heatmaps.db?memory_limit=2G&threads=2&preserve_insertion_order=false`, "db"))
 	if err != nil {
 		log.Fatal().Err(err).Msg("db connect")
 	}
