@@ -35,6 +35,7 @@ func initDb(dbpath string) (*duckdb.Connector, *sql.DB, error) {
 		return nil, nil, err
 	}
 	db := sql.OpenDB(dbConnector)
+	db.SetMaxOpenConns(2)
 	if err != nil {
 		return nil, nil, err
 	}
