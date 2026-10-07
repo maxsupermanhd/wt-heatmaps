@@ -10,7 +10,6 @@ ATM hosted at: https://thunder.nanachi.party/
 
 Couple deps:
 
-- Working postgres cluster
 - Downloading, parsing and carving (currently offloaded to Lux infrastructure
 at https://wtapi.dev/ but can be done via my wrpl-inspector)
 
