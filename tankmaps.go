@@ -3,18 +3,22 @@ package main
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"image"
 	"image/png"
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"golang.org/x/image/draw"
 )
 
 var cachedTankmaps *fclcache.FetchFileCache
+
+var tankmapNotFoundErr = errors.New("tankmap not found")
 
 func tankmapFetchB64LEV(kb64 string) ([]byte, error) {
 	kb, err := base64.StdEncoding.DecodeString(kb64)
@@ -28,6 +32,9 @@ func tankmapFetchB64LEV(kb64 string) ([]byte, error) {
 	resp, err := http.Get(fetchUrl)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode == 404 {
+		return nil, tankmapNotFoundErr
 	}
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("%s while downloading %q", resp.Status, fetchUrl)
@@ -58,6 +65,11 @@ func tankmapFromCache(id string) (*image.RGBA, error) {
 	return imRGBA, nil
 }
 
+var (
+	cachedSmallTankmaps     = map[string][]byte{}
+	cachedSmallTankmapsLock sync.Mutex
+)
+
 func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 	resizeTo := 0
 	switch r.PathValue("size") {
@@ -66,33 +78,53 @@ func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 	case "2048":
 		resizeTo = 2048
 	default:
-		w.WriteHeader(400)
+		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	ret, err := cachedTankmaps.Get(base64.StdEncoding.EncodeToString([]byte(r.PathValue("k"))))
+	k := base64.StdEncoding.EncodeToString([]byte(r.PathValue("k")))
+	if resizeTo == 128 {
+		cachedSmallTankmapsLock.Lock()
+		cachedSmall, ok := cachedSmallTankmaps[k]
+		cachedSmallTankmapsLock.Unlock()
+		if ok {
+			w.WriteHeader(http.StatusOK)
+			w.Write(cachedSmall)
+			return
+		}
+	}
+	ret, err := cachedTankmaps.Get(k)
 	if err != nil {
-		w.WriteHeader(500)
+		if errors.Is(err, tankmapNotFoundErr) {
+			w.WriteHeader(http.StatusNoContent)
+			w.Write([]byte(err.Error()))
+			return
+		}
+		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
 		return
 	}
 	if resizeTo == 2048 {
 		w.Header().Add("Cache-Control", "public, max-age=1814400")
-		w.WriteHeader(200)
+		w.WriteHeader(http.StatusOK)
 		w.Write(ret)
 		return
 	}
 	if resizeTo != 2048 {
 		im, err := png.Decode(bytes.NewBuffer(ret))
 		if err != nil {
-			w.WriteHeader(500)
+			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
 		out := image.NewRGBA(image.Rect(0, 0, resizeTo, resizeTo))
 		draw.ApproxBiLinear.Scale(out, out.Rect, im, im.Bounds(), draw.Over, nil)
 		w.Header().Add("Cache-Control", "public, max-age=1814400")
-		w.WriteHeader(200)
-		png.Encode(w, out)
+		w.WriteHeader(http.StatusOK)
+		buf := &bytes.Buffer{}
+		png.Encode(io.MultiWriter(w, buf), out)
+		cachedSmallTankmapsLock.Lock()
+		cachedSmallTankmaps[k] = buf.Bytes()
+		cachedSmallTankmapsLock.Unlock()
 	}
 
 }
