@@ -432,12 +432,16 @@ svg.addEventListener("pointerup", (e) => {
 	p.set("v0", from.y / mapSize);
 	p.set("u1", to.x / mapSize);
 	p.set("v1", to.y / mapSize);
+
+	loadingIndicators.area = true;
+	updateLoadingIndicators();
 	htmx.ajax("GET", "/data/areastats?" + p.toString(), "#areaStatsResults").then(
 		() => {
 			loadingIndicators.area = false;
 			updateLoadingIndicators();
 		}
 	);
+
 	loadingIndicators.arrows = true;
 	updateLoadingIndicators();
 	htmx.ajax("GET", "/data/arrows?" + p.toString(), {
