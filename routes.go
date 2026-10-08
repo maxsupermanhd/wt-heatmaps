@@ -339,6 +339,9 @@ type RegionVehicleStat struct {
 
 // serveRegion answers the same question as serveAreaStats, in JSON.
 func serveRegion(w http.ResponseWriter, r *http.Request) {
+	if !apiAuthorizedFor(w, r, "region") {
+		return
+	}
 	q := r.URL.Query()
 	level := q.Get("level")
 	box, ok := areaBoxFromQuery(q)
@@ -478,4 +481,27 @@ func servePermaRedirect(location string) func(w http.ResponseWriter, r *http.Req
 func handleRobots(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	fmt.Fprint(w, "User-agent: *\nAllow: /\n")
+}
+
+func apiAuthorizedFor(w http.ResponseWriter, r *http.Request, intent string) bool {
+	auth := r.Header.Get("Authorization")
+	have, ok := cfg.GetSliceString(append([]string{"auth"}, auth, "intents")...)
+	if !ok {
+		if w != nil {
+			denyApiAuth(w)
+		}
+		return false
+	}
+	if !slices.Contains(have, intent) {
+		if w != nil {
+			denyApiAuth(w)
+		}
+		return false
+	}
+	return true
+}
+
+func denyApiAuth(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusForbidden)
+	w.Write([]byte("sorry, you are not allowed to use this, feel free to request access in discord @flexcoral (343418440423309314) https://discord.gg/hQEvvtwfhJ\n\n"))
 }

@@ -4,10 +4,8 @@ templ API() {
 	<div style="max-width: 700px;margin-left: auto; margin-right: auto;">
 		<p>
 			This page describes the public HTTP API of War Thunder Heatmaps. The API is free.
-			It needs no key and no account (atm). Please keep your request rate low and set a
-			User-Agent header that says who you are, so I can contact you if you request
-			too fast or something. There is no rate limit at this time, do not do concurrent requests
-			and pace requests to not cause a fan spin because those are loud.
+			To get access feel free to contact me to get your key. Provide it in
+			<code>Authorization</code> request header.
 		</p>
 		<h3>GET /api/v1/region</h3>
 		<p>
@@ -21,7 +19,6 @@ templ API() {
 			<ul>
 				<li><code>level</code> (needed) map file name, for example <code>levels/avg_abandoned_town.bin</code>. The map selector on the main page uses the same values.</li>
 				<li><code>u0</code>, <code>v0</code>, <code>u1</code>, <code>v1</code> (needed) the two corners of the box</li>
-				<li><code>killerTeam</code> team number of the killer</li>
 				<li><code>killTimeMin</code>, <code>killTimeMax</code> time of the kill in the battle, in seconds</li>
 				<li><code>killerBattleRatingMin</code>, <code>killerBattleRatingMax</code> battle rating range of the killer vehicle, integers just how snail does it, inspect frontend selector to see how it is</li>
 				<li><code>victimBattleRatingMin</code>, <code>victimBattleRatingMax</code> the same for the victim vehicle</li>
