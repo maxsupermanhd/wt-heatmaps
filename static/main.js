@@ -152,6 +152,7 @@ if (levelSelector != null && levelSearch != null) {
 			row,
 			name: button.textContent.toLowerCase(),
 			id: (button.dataset.levelSelectValue || "").toLowerCase(),
+			btn: button,
 		};
 	});
 	levelSearch.addEventListener("input", () => {
@@ -175,6 +176,26 @@ if (levelSelector != null && levelSearch != null) {
 		ranked.sort((a, b) => b[0] - a[0]);
 		for (const [, e] of ranked) {
 			tbody.appendChild(e.row);
+		}
+	});
+	levelSearch.addEventListener("keydown", (e) => {
+		if (e.key != 'Enter') {
+			return;
+		}
+		const q = levelSearch.value.trim().toLowerCase();
+		if (q == "") {
+			return;
+		}
+		const ranked = [];
+		for (const e of entries) {
+			const score = scoreMapEntry(q, e);
+			if (score != null) {
+				ranked.push([score, e]);
+			}
+		}
+		if (ranked.length == 1) {
+			ranked[0][1].btn.click();
+			levelSelector.togglePopover();
 		}
 	});
 }
