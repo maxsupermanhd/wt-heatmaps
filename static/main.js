@@ -66,7 +66,7 @@ document.getElementById("tankmapBrightnessSlider").oninput = (e) => {
 };
 
 const form = document.querySelector("#settingsForm");
-
+var isHeatLoading = false;
 form.addEventListener("submit", (e) => {
 	if (e.submitter.id != "settingsSubmitBtn") {
 		return;
@@ -76,6 +76,11 @@ form.addEventListener("submit", (e) => {
 	if (f.get("level") == "") {
 		return;
 	}
+	if (isHeatLoading) {
+		return;
+	}
+	isHeatLoading = true;
+	document.getElementById("settingsSubmitBtnText").innerText = "Loading...";
 	// the table on the page counted the filters as they were, so it goes
 	setAreaLoaded(false);
 	loadHeat(f.get("level"), "/heat?" + new URLSearchParams(f).toString());
@@ -127,6 +132,8 @@ async function loadHeat(level, url) {
 	}
 	heat = { level, w: probe.naturalWidth, h: probe.naturalHeight, url: probe.src };
 	heatImage.setAttribute("href", heat.url);
+	document.getElementById("settingsSubmitBtnText").innerText = "Load";
+	isHeatLoading = false;
 }
 
 // map selector popover: filter and rank the map rows by what the user types
