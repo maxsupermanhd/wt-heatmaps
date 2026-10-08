@@ -65,8 +65,34 @@ document.getElementById("tankmapBrightnessSlider").oninput = (e) => {
 	}
 };
 
+
+var loadingIndicatorsKeys = {
+	"heat": "Heatmap loading...",
+	"arrows": "Area arrows loading...",
+	"area": "Area information loading...",
+	"testing1": "Testing1...",
+	"testing2": "Testing2...",
+}
+var loadingIndicators = {
+	heat: false,
+	arrows: false,
+	area: false,
+	testing1: false,
+	testing2: false
+};
+
+function updateLoadingIndicators() {
+	let ret = ""
+	for (const v in loadingIndicators) {
+		if (loadingIndicators[v]) {
+			ret += loadingIndicatorsKeys[v] + "<br/>"
+		}
+	}
+	document.getElementById("loadingIndicators").innerHTML = ret;
+}
+
+
 const form = document.querySelector("#settingsForm");
-var isHeatLoading = false;
 form.addEventListener("submit", (e) => {
 	if (e.submitter.id != "settingsSubmitBtn") {
 		return;
@@ -76,33 +102,26 @@ form.addEventListener("submit", (e) => {
 	if (f.get("level") == "") {
 		return;
 	}
-	if (isHeatLoading) {
+	if (loadingIndicators.heat) {
 		return;
 	}
-	isHeatLoading = true;
+	loadingIndicators.heat = true;
+	updateLoadingIndicators();
 	document.getElementById("settingsSubmitBtnText").innerText = "Loading...";
-	// the table on the page counted the filters as they were, so it goes
-	setAreaLoaded(false);
+	clearAreaStats();
+
 	loadHeat(f.get("level"), "/render/heat?" + new URLSearchParams(f).toString());
 	document
 		.getElementById("tankmap")
 		.setAttribute("href", "/minimap/2048/" + f.get("level"));
 });
 
-// The heatmap is one pixel per world meter, so its own pixel size is the grid
-// an area selection snaps to. An svg image gives no intrinsic size, so the
-// bytes come through fetch and go into the image as a blob. That is one
-// request, and the size is known by the time the map is on the screen.
 const heatImage = document.getElementById("heat");
-const heatLoading = document.getElementById("heatLoading");
-// heat is the heatmap on the screen, or null while there is none. A load that
-// fails leaves the one before it up, so this always tells what the user sees.
 let heat = null;
 let heatLoad = 0;
 
 async function loadHeat(level, url) {
 	const load = ++heatLoad;
-	heatLoading.classList.add("loading");
 	const probe = new Image();
 	try {
 		const resp = await fetch(url);
@@ -117,11 +136,6 @@ async function loadHeat(level, url) {
 			URL.revokeObjectURL(probe.src);
 		}
 		return;
-	} finally {
-		// the note belongs to the newest load, so an overtaken one leaves it up
-		if (load == heatLoad) {
-			heatLoading.classList.remove("loading");
-		}
 	}
 	if (load != heatLoad) {
 		URL.revokeObjectURL(probe.src);
@@ -132,8 +146,9 @@ async function loadHeat(level, url) {
 	}
 	heat = { level, w: probe.naturalWidth, h: probe.naturalHeight, url: probe.src };
 	heatImage.setAttribute("href", heat.url);
+	loadingIndicators.heat = false;
+	updateLoadingIndicators();
 	document.getElementById("settingsSubmitBtnText").innerText = "Load";
-	isHeatLoading = false;
 }
 
 // map selector popover: filter and rank the map rows by what the user types
@@ -194,8 +209,8 @@ if (levelSelector != null && levelSearch != null) {
 			}
 		}
 		if (ranked.length == 1) {
+			document.activeElement.blur();
 			ranked[0][1].btn.click();
-			levelSelector.togglePopover();
 			document.getElementById("settingsSubmitBtn").click();
 		}
 	});
@@ -331,30 +346,25 @@ const areaResults = document.getElementById("areaStatsResults");
 const areaLines = document.getElementById("mapviewLines");
 let selectMode = false;
 let selectFrom = null;
-let areaLoaded = false;
 
 selectBtn.addEventListener("click", () => {
-	if (areaLoaded) {
-		setAreaLoaded(false);
+	if (loadingIndicators.area) {
 		return;
 	}
 	setSelectMode(!selectMode);
 });
 
+function clearAreaStats() {
+	selectRect.style.display = "none";
+	areaResults.innerHTML = "";
+	areaLines.innerHTML = "";
+	selectBtn.textContent = "Select area";
+}
+
 function setSelectMode(on) {
 	selectMode = on;
 	svg.style.cursor = on ? "crosshair" : "";
 	selectBtn.style.fontWeight = on ? "bold" : "";
-}
-
-function setAreaLoaded(on) {
-	areaLoaded = on;
-	selectBtn.textContent = on ? "Clear area" : "Select area";
-	if (!on) {
-		selectRect.style.display = "none";
-		areaResults.innerHTML = "";
-		areaLines.innerHTML = "";
-	}
 }
 
 // snapToGrid puts a map coordinate on the nearest edge between two heatmap
@@ -417,28 +427,25 @@ svg.addEventListener("pointerup", (e) => {
 		return;
 	}
 	const p = new URLSearchParams(new FormData(form));
-	// the box was drawn on the heatmap, so it belongs to the level the heatmap
-	// was drawn for, whatever the form says now. The other filters do come from
-	// the form, which is what the page promises.
 	p.set("level", heat.level);
 	p.set("u0", from.x / mapSize);
 	p.set("v0", from.y / mapSize);
 	p.set("u1", to.x / mapSize);
 	p.set("v1", to.y / mapSize);
-	// htmx swaps nothing when the server answers an error, and rejects when the
-	// request itself fails, so an empty table means the request got nowhere. A
-	// swap takes the note with it, and an answer that never came leaves it here.
-	areaResults.innerHTML =
-		'<div class="loadingNote"><span>area stats loading</span></div>';
-	const done = () => {
-		areaResults.querySelector(".loadingNote")?.remove();
-		setAreaLoaded(areaResults.innerHTML != "");
-	};
-	htmx.ajax("GET", "/data/areastats?" + p.toString(), "#areaStatsResults").then(done, done);
+	htmx.ajax("GET", "/data/areastats?" + p.toString(), "#areaStatsResults").then(
+		() => {
+			loadingIndicators.area = false;
+			updateLoadingIndicators();
+		}
+	);
+	loadingIndicators.arrows = true;
+	updateLoadingIndicators();
 	htmx.ajax("GET", "/data/arrows?" + p.toString(), {
 		handler: (_, info) => {
 			// FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG
 			areaLines.innerHTML = info.xhr.response;
+			loadingIndicators.arrows = false;
+			updateLoadingIndicators();
 		}
 	});
 });

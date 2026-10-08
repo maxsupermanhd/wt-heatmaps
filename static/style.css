@@ -86,6 +86,21 @@ body {
 	transform: translate(-50%, -50%) rotate(-45deg);
 }
 
+.loadingIndicators {
+	z-index: 9999;
+	background-color: #fff7;
+	color: #000;
+	text-align: right;
+	position: absolute;
+	right: 0;
+	padding: 0.4em;
+	border-bottom-left-radius: 0.3em;
+}
+
+.loadingIndicators:empty {
+	display: none;
+}
+
 /* the map watermark lies over the map and moves nothing */
 #heatLoading {
 	position: absolute;
@@ -118,7 +133,7 @@ body {
 }
 
 /* the map takes the height of the page, the settings and the table stack beside it */
-@media (min-aspect-ratio: 4/3) and (width >= 970px)  {
+@media (min-aspect-ratio: 4/3) and (width >= 970px) {
 	.content {
 		--mapw: var(--mapsize);
 		grid-template-areas: "map settings" "map area";

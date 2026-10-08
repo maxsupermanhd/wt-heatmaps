@@ -73,6 +73,7 @@ type LevelStat struct {
 templ Index(levels []LevelStat, battleRatingMax int) {
 	<div class="content">
 		<div class="map">
+			<div id="loadingIndicators" class="loadingIndicators"></div>
 			<svg id="mapview" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
 				<style>
 					#tankmap {
@@ -93,7 +94,6 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 				<rect id="areaSelect" style="display: none; fill: #ffffff20; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke;"></rect>
 				<g id="mapviewLines"></g>
 			</svg>
-			<div id="heatLoading" class="loadingNoteRotated loadingNote"><span>heatmap loading please wait</span></div>
 		</div>
 		<div id="settingsDiv" class="settings">
 			<p>Display settings:</p>
@@ -104,7 +104,7 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 					<input id="settingsFormLevelInput" name="level" readonly/>
 					<div popover id="levelSelector">
 						<center><b>Select map:</b></center>
-						<input id="levelSelectorSearch" type="search" placeholder="Search maps..." autocomplete="off"/>
+						<input id="levelSelectorSearch" type="search" placeholder="Search maps..." autocomplete="off" autofocus/>
 						<table>
 							<thead>
 								<tr>
