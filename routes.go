@@ -30,12 +30,13 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), levelStatsSorted)))
 	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats), cachedStatsTables)))
 	mux.HandleFunc("GET /about", httpLog(compRender(frontend.Page(frontend.About()))))
-	mux.HandleFunc("GET /api", httpLog(compRender(frontend.Page(frontend.API()))))
+	mux.HandleFunc("GET /about/api", httpLog(compRender(frontend.Page(frontend.API()))))
 	mux.HandleFunc("GET /waitroom/{p...}", httpLog(compRenderFn(seveWaitroom)))
 
 	mux.HandleFunc("GET /minimap/{size}/{k...}", serveCachedMinimaps)
-	mux.HandleFunc("GET /heat", httpLog(serveHeat))
-	mux.HandleFunc("GET /areastats", httpLog(compRenderFn(serveAreaStats)))
+	mux.HandleFunc("GET /render/heat", httpLog(serveHeat))
+	mux.HandleFunc("GET /data/arrows", httpLog(serveAreaArrows))
+	mux.HandleFunc("GET /data/areastats", httpLog(compRenderFn(serveAreaStats)))
 	mux.HandleFunc("GET /api/v1/region", httpLog(serveRegion))
 
 	mux.HandleFunc("GET /debug/duckdbmemory", httpLog(serveDebugDuckdbMemory))
@@ -181,6 +182,69 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("Data points: %d", totalN),
 		time.Now().Round(0).String(),
 	).EncodePNG(w)
+	log.Info().Dur("perf", time.Since(perf)).Int("nPix", len(tally)).Int("nDp", totalN).Msg("heat")
+}
+
+func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
+	perf := time.Now()
+	q := r.URL.Query()
+	level := q.Get("level")
+	box, ok := areaBoxFromQuery(q)
+	if level == "" || !ok {
+		w.WriteHeader(400)
+		return
+	}
+
+	levelOffsets, err := getLevelOffsets(level)
+	if err != nil {
+		log.Err(err).Msg("get level offsets")
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	kq := buildKillQuery(q, level)
+	if kq == nil {
+		w.WriteHeader(204)
+		return
+	}
+	kq.QueryWithArea(levelOffsets.TankMapAreaToWorld(box))
+
+	tally, err := ks.GetAreaArrows(r.Context(), kq)
+	if err != nil {
+		log.Err(err).Msg("get kills")
+		w.WriteHeader(500)
+		w.Write([]byte(err.Error()))
+		return
+	}
+
+	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
+	areaH := float32(math.Abs(float64(levelOffsets.TankMap0[1] - levelOffsets.TankMap1[1])))
+	areaOffsetX := levelOffsets.TankMap0[0]
+	areaOffsetZ := levelOffsets.TankMap0[1]
+	// outputW := int(areaW)
+	// outputH := int(areaH)
+	// out := gg.NewContext(outputW, outputH)
+	// out.SetRGBA255(255, 30, 30, 255)
+
+	fmt.Fprint(w, `<g id="mapviewLines" stroke="#f11a" width="100%" height="100%" stroke-width="0.3" stroke-linecap="round">`)
+
+	totalN := 0
+	for _, v := range tally {
+		t1x := 0.25 + (math.Round(float64(float64((float32(v.FromX)-areaOffsetX)/areaW) * float64(2048))))
+		t1z := 0.25 + (math.Round(float64(float64(1-(float32(v.FromZ)-areaOffsetZ)/areaH) * float64(2048))))
+		t2x := 0.25 + (math.Round(float64(float64((float32(v.ToX)-areaOffsetX)/areaW) * float64(2048))))
+		t2z := 0.25 + (math.Round(float64(float64(1-(float32(v.ToZ)-areaOffsetZ)/areaH) * float64(2048))))
+
+		fmt.Fprintf(w, `<line x1="%v" y1="%v" x2="%v" y2="%v"></line>`, t1x, t1z, t2x, t2z)
+
+		// out.DrawLine(t1x, t1z, t2x, t2z)
+		// out.Stroke()
+		// out.SetRGBA(int(tx), int(tz), color.RGBA{R: 255, G: 30, B: 30, A: 255})
+		totalN++
+	}
+	fmt.Fprint(w, `</g>`)
+	// out.EncodePNG(w)
 	log.Info().Dur("perf", time.Since(perf)).Int("nPix", len(tally)).Int("nDp", totalN).Msg("heat")
 }
 

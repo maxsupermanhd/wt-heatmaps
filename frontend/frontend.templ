@@ -25,7 +25,7 @@ templ Page(content templ.Component) {
 				<span><a href="/">View</a></span>
 				<span><a href="/stats">Stats</a></span>
 				<span><a href="/about">About</a></span>
-				<span><a href="/api">API</a></span>
+				<span><a href="/about/api">API</a></span>
 				<span style="float: right;"><small>by flexcoral</small></span>
 			</nav>
 			@content
@@ -73,7 +73,7 @@ type LevelStat struct {
 templ Index(levels []LevelStat, battleRatingMax int) {
 	<div class="content">
 		<div class="map">
-			<svg id="mapview" width="100%" height="100%">
+			<svg id="mapview" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
 				<style>
 					#tankmap {
 						filter: brightness(35%)
@@ -91,6 +91,7 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 				<image style="image-rendering: pixelated;" id="tankmap"></image>
 				<image style="image-rendering: pixelated; width:2048px; height:2048px" id="heat"></image>
 				<rect id="areaSelect" style="display: none; fill: #ffffff20; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke;"></rect>
+				<g id="mapviewLines"></g>
 			</svg>
 			<div id="heatLoading" class="loadingNoteRotated loadingNote"><span>heatmap loading please wait</span></div>
 		</div>

@@ -83,7 +83,7 @@ form.addEventListener("submit", (e) => {
 	document.getElementById("settingsSubmitBtnText").innerText = "Loading...";
 	// the table on the page counted the filters as they were, so it goes
 	setAreaLoaded(false);
-	loadHeat(f.get("level"), "/heat?" + new URLSearchParams(f).toString());
+	loadHeat(f.get("level"), "/render/heat?" + new URLSearchParams(f).toString());
 	document
 		.getElementById("tankmap")
 		.setAttribute("href", "/minimap/2048/" + f.get("level"));
@@ -328,6 +328,7 @@ const mapSize = 2048;
 const selectBtn = document.getElementById("areaSelectBtn");
 const selectRect = document.getElementById("areaSelect");
 const areaResults = document.getElementById("areaStatsResults");
+const areaLines = document.getElementById("mapviewLines");
 let selectMode = false;
 let selectFrom = null;
 let areaLoaded = false;
@@ -352,6 +353,7 @@ function setAreaLoaded(on) {
 	if (!on) {
 		selectRect.style.display = "none";
 		areaResults.innerHTML = "";
+		areaLines.innerHTML = "";
 	}
 }
 
@@ -432,5 +434,11 @@ svg.addEventListener("pointerup", (e) => {
 		areaResults.querySelector(".loadingNote")?.remove();
 		setAreaLoaded(areaResults.innerHTML != "");
 	};
-	htmx.ajax("GET", "/areastats?" + p.toString(), "#areaStatsResults").then(done, done);
+	htmx.ajax("GET", "/data/areastats?" + p.toString(), "#areaStatsResults").then(done, done);
+	htmx.ajax("GET", "/data/arrows?" + p.toString(), {
+		handler: (_, info) => {
+			// FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG
+			areaLines.innerHTML = info.xhr.response;
+		}
+	});
 });
