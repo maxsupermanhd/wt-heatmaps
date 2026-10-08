@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/davecgh/go-spew/spew"
-	"github.com/rs/zerolog/log"
 )
 
 type QueryConditions struct {
@@ -128,7 +127,7 @@ GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
 		}
 		return nil, err
 	}
-	log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
+	// log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
 	return CollectRows(rows, func(row CollectableRow) (ret KillTally, err error) {
 		err = row.Scan(&ret.X, &ret.Z, &ret.Score, &ret.Count)
 		return
@@ -171,7 +170,7 @@ ORDER BY COUNT(*) DESC`
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
+	// log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
 	return CollectRows(rows, func(row CollectableRow) (ret VehicleAreaStat, err error) {
 		err = row.Scan(&ret.Vehicle, &ret.Kills, &ret.Deaths)
 		return
