@@ -24,6 +24,7 @@ import (
 type ingestPreferences struct {
 	reqMaps []string
 	reqBrs  []string
+	reqIDs  []string
 }
 
 func (i ingestPreferences) MarshalJSON() ([]byte, error) {
@@ -33,6 +34,9 @@ func (i ingestPreferences) MarshalJSON() ([]byte, error) {
 	}
 	if len(i.reqBrs) > 0 {
 		mainCond = append(mainCond, map[string]any{"brs": i.reqBrs})
+	}
+	if len(i.reqIDs) > 0 {
+		mainCond = append(mainCond, map[string]any{"uids": i.reqIDs})
 	}
 	if len(mainCond) == 0 {
 		return nil, errors.New("empty prefs")
@@ -194,5 +198,6 @@ func getPreferences() (ret ingestPreferences, err error) {
 			ret.reqBrs[i] = frontend.BRString(reqBRsInternal[i])
 		}
 	}
+	ret.reqIDs, _ = cfg.GetKeys("interesting")
 	return
 }
