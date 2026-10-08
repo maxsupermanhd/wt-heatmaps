@@ -191,12 +191,6 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions
 	if conds.region == nil {
 		return nil, errors.ErrUnsupported
 	}
-	qKillValue := "+1"
-	qDeathValue := "-1"
-	if conds.hasTeamFilter {
-		qKillValue = `CASE WHEN t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN +1 ELSE 0 END`
-		qDeathValue = `CASE WHEN t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN -1 ELSE 0 END`
-	}
 	q := `SELECT
       ROUND(p.x)::int AS x,
       ROUND(p.z)::int AS z,
@@ -205,8 +199,8 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions
     FROM kills k
     CROSS JOIN LATERAL (
       VALUES
-        (k.killer_posx, k.killer_posz, ` + qKillValue + `),
-        (k.victim_posx, k.victim_posz, ` + qDeathValue + `)
+        (k.killer_posx, k.killer_posz, +1),
+        (k.victim_posx, k.victim_posz, -1)
     ) AS p(x, z, delta)
     ` + conds.WhereCase() + `
     GROUP BY ROUND(p.x)::int, ROUND(p.z)::int
