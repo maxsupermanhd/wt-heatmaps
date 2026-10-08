@@ -31,6 +31,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats), cachedStatsTables)))
 	mux.HandleFunc("GET /about", httpLog(compRender(frontend.Page(frontend.About()))))
 	mux.HandleFunc("GET /about/api", httpLog(compRender(frontend.Page(frontend.API()))))
+	mux.HandleFunc("GET /about/changelog", httpLog(compRender(frontend.Page(frontend.Changelog()))))
 	mux.HandleFunc("GET /waitroom/{p...}", httpLog(compRenderFn(seveWaitroom)))
 
 	mux.HandleFunc("GET /minimap/{size}/{k...}", serveCachedMinimaps)
