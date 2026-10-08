@@ -196,6 +196,7 @@ if (levelSelector != null && levelSearch != null) {
 		if (ranked.length == 1) {
 			ranked[0][1].btn.click();
 			levelSelector.togglePopover();
+			document.getElementById("settingsSubmitBtn").click();
 		}
 	});
 }
