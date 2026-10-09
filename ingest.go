@@ -115,9 +115,6 @@ func ingestRoutine(exitChan <-chan struct{}) {
 		for carve := range carvesChan {
 			kills, err := killstorage.LuxCarveToKills(carve)
 			if err != nil {
-				if err.Error() == "SpawnSize has incorrect length: 0" {
-					continue
-				}
 				log.Err(err).Msg("carve to kills fail")
 				b, _ := json.Marshal(carve)
 				os.WriteFile("dump.json", b, 0644)
