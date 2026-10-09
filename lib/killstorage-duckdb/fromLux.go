@@ -53,6 +53,11 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 	if len(carve.SpawnSide) != 2 {
 		return nil, fmt.Errorf("SpawnSize has incorrect length: %d", len(carve.SpawnSide))
 	}
+	if carve.SpawnSide[0] == 0 || carve.SpawnSide[1] == 0 ||
+		carve.SpawnSide[0] == carve.SpawnSide[1] ||
+		carve.SpawnSide[0] > 2 || carve.SpawnSide[1] > 2 {
+		return nil, fmt.Errorf("SpawnSize looking funny: %v", carve.SpawnSide)
+	}
 	sessionID, err := strconv.ParseUint(carve.Light.Id, 10, 64)
 	if err != nil {
 		return ret, fmt.Errorf("parsing session id number string %q: %w", carve.Light.Id, err)
