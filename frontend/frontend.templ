@@ -27,6 +27,7 @@ templ Page(content templ.Component) {
 				<span><a href="/about">About</a></span>
 				<span><a href="/about/api">API</a></span>
 				<span><a href="/about/changelog">Changelog</a></span>
+				@templ.Raw(currentNotification)
 				<span style="float: right;"><small>by flexcoral</small></span>
 			</nav>
 			@content

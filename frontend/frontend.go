@@ -1,7 +1,9 @@
 package frontend
 
 import (
+	"errors"
 	"fmt"
+	"os"
 	"runtime/debug"
 	"slices"
 	"strings"
@@ -66,4 +68,17 @@ func GetVCSSummary(s []debug.BuildSetting) string {
 		}
 	}
 	return strings.Join(ret, " ")
+}
+
+var currentNotification = readNotificationFromFile("notification.html")
+
+func readNotificationFromFile(fpath string) string {
+	b, err := os.ReadFile(fpath)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return ""
+		}
+		return "error reading notification file: " + err.Error()
+	}
+	return string(b)
 }
