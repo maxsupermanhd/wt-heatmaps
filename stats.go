@@ -122,7 +122,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 	}
 	byBR := map[int]int{}
 	for v, c := range byVehicle {
-		br, ok := vehicles[v]
+		br, ok := vehicles[strings.TrimPrefix(v, "tankmodels/")]
 		if !ok {
 			continue
 		}
