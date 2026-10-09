@@ -1,8 +1,6 @@
 syntax = "proto3";
 
-package wt.v2;
-
-option go_package = "./luxprotogen";
+package wt.v3;
 
 // War Thunder replay schema, version 2. Published at /schemas/v2/replay.proto.
 // Each version lives in its own directory and never changes once published, so a body
@@ -151,6 +149,10 @@ message Replay {
   // in the words the game used. Coarser than hits[] - two grades, no munition, no
   // parts - and it reports impacts hits[] already carries in detail.
   repeated Damage       damage        = 15;
+  // Physical map side used by each in-game team. When resolved, exactly two values in
+  // team order: [side of team 1, side of team 2]. Empty when the replay contains no
+  // unambiguous mapping.
+  repeated uint32        spawn_side    = 16;
 }
 
 message Tss {

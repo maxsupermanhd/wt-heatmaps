@@ -50,6 +50,9 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 	if carve.Light == nil {
 		return ret, errors.New("carve.Light is nill")
 	}
+	if len(carve.SpawnSide) != 2 {
+		return nil, fmt.Errorf("SpawnSize has incorrect length: %d", len(carve.SpawnSide))
+	}
 	sessionID, err := strconv.ParseUint(carve.Light.Id, 10, 64)
 	if err != nil {
 		return ret, fmt.Errorf("parsing session id number string %q: %w", carve.Light.Id, err)
@@ -78,11 +81,11 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 		if len(kill.OffenderPos) != 3 {
 			return ret, fmt.Errorf("offender pos is not 3 elements: %v", kill.OffenderPos)
 		}
-		killerTeam, err := luxCarveToKillsGetPlayerTeam(carve.Light.Players, kill.OffenderUid)
+		killerTeam, err := luxCarveToKillsGetPlayerTeam(carve, kill.OffenderUid)
 		if err != nil {
 			return ret, err
 		}
-		victimTeam, err := luxCarveToKillsGetPlayerTeam(carve.Light.Players, kill.OffendedUid)
+		victimTeam, err := luxCarveToKillsGetPlayerTeam(carve, kill.OffendedUid)
 		if err != nil {
 			return ret, err
 		}
@@ -117,13 +120,16 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 	return
 }
 
-func luxCarveToKillsGetPlayerTeam(players []*luxprotogen.Player, uid string) (int, error) {
-	for _, p := range players {
+func luxCarveToKillsGetPlayerTeam(carve *luxprotogen.Replay, uid string) (int, error) {
+	for _, p := range carve.Light.Players {
 		if p == nil {
 			continue
 		}
 		if p.Uid == uid {
-			return int(p.Team), nil
+			if p.Team != 1 && p.Team != 2 {
+				return 0, fmt.Errorf("player %q has weird team: %d", uid, p.Team)
+			}
+			return int(carve.SpawnSide[p.Team-1]), nil
 		}
 	}
 	return 0, fmt.Errorf("player was not found (%q)", uid)
