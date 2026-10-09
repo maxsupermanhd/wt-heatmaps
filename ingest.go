@@ -173,8 +173,8 @@ func getPreferences() (ret ingestPreferences, err error) {
 		return
 	}
 	slices.Reverse(byLevel)
-	if len(byLevel) > 4 {
-		byLevel = byLevel[:len(byLevel)/4]
+	if len(byLevel) > 2 {
+		byLevel = byLevel[:len(byLevel)/2]
 	}
 	ret.reqMaps = make([]string, len(byLevel))
 	for i := range ret.reqMaps {
