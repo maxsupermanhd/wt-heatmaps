@@ -145,6 +145,13 @@ func ingestRoutine(exitChan <-chan struct{}) {
 				preferencesChan <- ingestCurrentPreferences
 			}
 			ingestCurrentPreferencesLock.Unlock()
+			for len(preferencesChan) > 1 {
+				select {
+				case <-preferencesChan:
+				default:
+					break
+				}
+			}
 			err := lux.FetchFromLux(log.Logger, ctx.Done(), carvesChan, preferencesChan, luxToken)
 			log.Err(err).Msg("lux fetch exited")
 		}
