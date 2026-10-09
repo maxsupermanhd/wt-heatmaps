@@ -5,15 +5,25 @@ templ Changelog() {
 		<div>
 			<h2>Changelog of WT-Heatmaps project</h2>
 		</div>
-		<div style="padding-left:0.6em;border-left:3px solid darkred">
-			<b>Known issues:</b>
-			<ul>
-				<li>
-					Team data has been scuffed, atm just a random number.
-					Fix in data provider in progress to actually bind the number
-					to the spawn sides.
-				</li>
-			</ul>
+		// <div style="padding-left:0.6em;border-left:3px solid darkred">
+		// 	<b>Known issues:</b>
+		// 	<ul>
+		// 		<li>
+		// 			Team data has been scuffed, atm just a random number.
+		// 			Fix in data provider in progress to actually bind the number
+		// 			to the spawn sides.
+		// 		</li>
+		// 	</ul>
+		// </div>
+		<div>
+			<h4>9 October 2026 23:30 GMT+3</h4>
+			<div>
+				Fully purged non ground to ground kills from the dataset.
+				Apparently stat table "by BR" never counted ground to begin with, fascinating, fixed.
+				<br/>
+				Updated to carve version 3, including consistent logical team side indicator.
+				All previous dataset records will have their team set to 0 as to not show up on.
+			</div>
 		</div>
 		<div>
 			<h4>8 October 2026 23:30 GMT+3</h4>
