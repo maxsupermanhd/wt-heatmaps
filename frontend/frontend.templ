@@ -11,9 +11,9 @@ templ Page(content templ.Component) {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
 			<title>WT-Heatmaps</title>
-			<link href="/static/style.css" rel="stylesheet"/>
-			<script src="/static/htmx.min.js"></script>
-			// <script src="/static/htmx-ext-ws.min.js"></script>
+			<link href={ StaticAssets.URL("style.css") } rel="stylesheet"/>
+			<script src={ StaticAssets.URL("htmx.min.js") }></script>
+			// <script src={ StaticAssets.URL("htmx-ext-ws.min.js") }></script>
 		</head>
 		<body class="mainstyle">
 			<style>
@@ -42,7 +42,7 @@ templ WaitroomPage() {
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0"/>
 			<title>WT-Heatmaps</title>
-			<link href="/static/style.css" rel="stylesheet"/>
+			<link href={ StaticAssets.URL("style.css") } rel="stylesheet"/>
 		</head>
 		<body class="mainstyle">
 			<style>
@@ -210,7 +210,7 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 			<div id="areaStatsResults"></div>
 		</div>
 	</div>
-	<script type="module" src="/static/main.js"></script>
+	<script type="module" src={ StaticAssets.URL("main.js") }></script>
 }
 
 templ vehicleClassSelector(name string) {

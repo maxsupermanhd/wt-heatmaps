@@ -3,11 +3,14 @@ package frontend
 import (
 	"errors"
 	"fmt"
+	"main/lib/staticassets"
 	"os"
 	"runtime/debug"
 	"slices"
 	"strings"
 )
+
+var StaticAssets *staticassets.Assets
 
 func BRString(i int) string {
 	if i == 0 {

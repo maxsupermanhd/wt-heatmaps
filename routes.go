@@ -7,6 +7,7 @@ import (
 	"image/color"
 	"main/frontend"
 	killstorage "main/lib/killstorage-duckdb"
+	"main/lib/staticassets"
 	"math"
 	"net/http"
 	"net/url"
@@ -23,10 +24,12 @@ import (
 )
 
 func makeHTTPServeMux() http.HandlerFunc {
+	staticAssets := staticassets.New("static", "/static/")
+	frontend.StaticAssets = staticAssets
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", httpLog(handle404))
 	mux.HandleFunc("GET /robots.txt", httpLog(handleRobots))
-	mux.HandleFunc("GET /static/", httpLog(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))).ServeHTTP))
+	mux.HandleFunc("GET /static/{name...}", httpLog(staticAssets.ServeHTTP))
 	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), levelStatsSorted)))
 	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats), cachedStatsTables)))
 	mux.HandleFunc("GET /about", httpLog(compRender(frontend.Page(frontend.About()))))

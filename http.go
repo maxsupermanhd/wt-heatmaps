@@ -69,13 +69,6 @@ func handle404(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("not found\n\n"))
 }
 
-func serveFile(name string, cache string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Cache-Control", cache)
-		http.ServeFile(w, r, name)
-	}
-}
-
 type httpResponseWriterCapturer struct {
 	http.ResponseWriter
 	lastStatus int
