@@ -5,5 +5,5 @@ cache/
 config.json
 *.db
 *.wal
-notification.html
+notification.html*
 cmd/animate/out
