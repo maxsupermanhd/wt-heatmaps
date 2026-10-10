@@ -10,22 +10,16 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"time"
 
-	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"github.com/rs/zerolog/log"
 )
 
 var (
 	levelByColorSorter = imagecolorsort.NewImageColorSort(tankmapFromCache)
-	levelAmountsCache  = fclcache.NewValueRefresh(wb, 30*time.Minute, func(ctx context.Context) ([]killstorage.AmountsByLevelRow, error) {
-		return ks.GetAmountsByLevel(ctx)
-	})
-	levelStatsSorted = fclcache.NewValueRefresh(wb, 30*time.Minute, getSortedLevelStats)
 )
 
 func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
-	levelAmounts, err := levelAmountsCache.Get(ctx)
+	levelAmounts, err := cachedKSAmountsByLevel.Get(ctx)
 	if err != nil {
 		return nil, err
 	}

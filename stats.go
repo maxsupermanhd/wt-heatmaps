@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"main/frontend"
+	killstorage "main/lib/killstorage-duckdb"
 	"maps"
 	"net/http"
 	"slices"
@@ -16,9 +17,37 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var cachedStatsTables = fclcache.NewValueRefresh(wb, 10*time.Minute, collectStatsTables)
+var (
+	cachedKSAmountsByLevel = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) ([]killstorage.AmountsByLevelRow, error) {
+		return ks.GetAmountsByLevel(ctx)
+	})
+	cachedKSAmountsByDay = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) (map[time.Time]int, error) {
+		return ks.GetAmountsByDay(ctx)
+	})
+	cachedKSAmountsByVehicle = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) (map[string]int, error) {
+		return ks.GetAmountsByVehicle(ctx)
+	})
+	cachedKSAmountsByInteresting = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) ([]killstorage.InterestKillsDeathsRow, error) {
+		idsStrings, ok := cfg.GetKeys("interesting")
+		if !ok {
+			return nil, nil
+		}
+		req := map[uint64]string{}
+		for _, idString := range idsStrings {
+			id, err := strconv.ParseUint(idString, 10, 64)
+			if err != nil {
+				continue
+			}
+			name, ok := cfg.GetString("interesting", idString)
+			if ok {
+				req[id] = name
+			}
+		}
+		return ks.GetAmountsOfInteresting(ctx, slices.Collect(maps.Keys(req)))
+	})
+)
 
-func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
+func getStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 	ret := []frontend.StatsTable{}
 	tables := []func(ctx context.Context) ([]frontend.StatsTable, error){
 		statsGetByLevel,
@@ -37,10 +66,7 @@ func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
-	ingestCurrentPreferencesLock.Lock()
-	reqMaps := ingestCurrentPreferences.reqMaps
-	ingestCurrentPreferencesLock.Unlock()
-	byLevel, err := ks.GetAmountsByLevel(ctx)
+	byLevel, err := cachedKSAmountsByLevel.Get(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by level")
 		return nil, err
@@ -50,6 +76,9 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 		byLevelMax = max(byLevelMax, v.Count)
 	}
 	byLevelRows := [][]templ.Component{}
+	ingestCurrentPreferencesLock.Lock()
+	reqMaps := ingestCurrentPreferences.reqMaps
+	ingestCurrentPreferencesLock.Unlock()
 	for _, k := range byLevel {
 		levelName := levelToLocalized(k.LevelName)
 		isRequested := ""
@@ -71,7 +100,7 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetByDay(ctx context.Context) ([]frontend.StatsTable, error) {
-	byDay, err := ks.GetAmountsByDay(ctx)
+	byDay, err := cachedKSAmountsByDay.Get(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by day")
 		return nil, err
@@ -106,10 +135,7 @@ func statsGetByDay(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
-	ingestCurrentPreferencesLock.Lock()
-	reqBrs := ingestCurrentPreferences.reqBrs
-	ingestCurrentPreferencesLock.Unlock()
-	byVehicle, err := ks.GetAmountsByVehicle(ctx)
+	byVehicle, err := cachedKSAmountsByVehicle.Get(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update amounts by br")
 		return nil, err
@@ -137,6 +163,9 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 	for _, v := range byBR {
 		byBRMax = max(byBRMax, v)
 	}
+	ingestCurrentPreferencesLock.Lock()
+	reqBrs := ingestCurrentPreferences.reqBrs
+	ingestCurrentPreferencesLock.Unlock()
 	for k := range slices.Sorted(maps.Keys(byBR)) {
 		isRequested := ""
 		if slices.Contains(reqBrs, frontend.BRString(k)) {
@@ -183,22 +212,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func statsGetInteresting(ctx context.Context) ([]frontend.StatsTable, error) {
-	idsStrings, ok := cfg.GetKeys("interesting")
-	if !ok {
-		return nil, nil
-	}
-	req := map[uint64]string{}
-	for _, idString := range idsStrings {
-		id, err := strconv.ParseUint(idString, 10, 64)
-		if err != nil {
-			continue
-		}
-		name, ok := cfg.GetString("interesting", idString)
-		if ok {
-			req[id] = name
-		}
-	}
-	interesting, err := ks.GetAmountsOfInteresting(ctx, slices.Collect(maps.Keys(req)))
+	interesting, err := cachedKSAmountsByInteresting.Get(ctx)
 	if err != nil {
 		log.Err(err).Msg("cache update interesting")
 		return nil, err
@@ -207,7 +221,7 @@ func statsGetInteresting(ctx context.Context) ([]frontend.StatsTable, error) {
 	for _, row := range interesting {
 		row.Deaths = max(row.Deaths, 1)
 		ret = append(ret, []templ.Component{
-			frontend.TextNode(req[row.ID]),
+			frontend.TextNode(cfg.GetDString("???", "interesting", strconv.FormatUint(row.ID, 10))),
 			frontend.TextNode(strconv.FormatUint(row.ID, 10)),
 			frontend.TextNode(strconv.Itoa(row.Kills)),
 			frontend.TextNode(strconv.Itoa(row.Deaths)),
@@ -222,7 +236,9 @@ func statsGetInteresting(ctx context.Context) ([]frontend.StatsTable, error) {
 }
 
 func serveStats(_ http.ResponseWriter, r *http.Request) templ.Component {
-	tables, _ := cachedStatsTables.Get(r.Context())
-	updatedAt := cachedStatsTables.LastRefresh()
-	return frontend.Page(frontend.Stats(tables, updatedAt, int(ingestStatSessionRate5m.Load()), int(ingestStatKillsRate5m.Load())))
+	tables, err := getStatsTables(r.Context())
+	if err != nil {
+		log.Err(err).Msg("getting stats tables")
+	}
+	return frontend.Page(frontend.Stats(tables, int(ingestStatSessionRate5m.Load()), int(ingestStatKillsRate5m.Load())))
 }

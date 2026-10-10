@@ -30,8 +30,9 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /", httpLog(handle404))
 	mux.HandleFunc("GET /robots.txt", httpLog(handleRobots))
 	mux.HandleFunc("GET /static/{name...}", httpLog(staticAssets.ServeHTTP))
-	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), levelStatsSorted)))
-	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats), cachedStatsTables)))
+	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), cachedKSAmountsByLevel)))
+	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats),
+		cachedKSAmountsByDay, cachedKSAmountsByInteresting, cachedKSAmountsByLevel, cachedKSAmountsByVehicle)))
 	mux.HandleFunc("GET /about", httpLog(compRender(frontend.Page(frontend.About()))))
 	mux.HandleFunc("GET /about/api", httpLog(compRender(frontend.Page(frontend.API()))))
 	mux.HandleFunc("GET /about/changelog", httpLog(compRender(frontend.Page(frontend.Changelog()))))
@@ -108,7 +109,7 @@ func seveWaitroom(w http.ResponseWriter, r *http.Request) templ.Component {
 }
 
 func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
-	levels, err := levelStatsSorted.Get(r.Context())
+	levels, err := getSortedLevelStats(r.Context())
 	if err != nil {
 		log.Err(err).Msg("level stats sorted")
 		return frontend.Page(frontend.TextNode("something went really wrong"))

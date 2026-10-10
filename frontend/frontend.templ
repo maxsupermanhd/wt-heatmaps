@@ -2,7 +2,6 @@ package frontend
 
 import "fmt"
 import "math"
-import "time"
 
 templ Page(content templ.Component) {
 	<!DOCTYPE html>
@@ -341,7 +340,7 @@ type StatsTable struct {
 	Rows         [][]templ.Component
 }
 
-templ Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, ingestStatKillsRate5m int) {
+templ Stats(stats []StatsTable, ingestStatSessionRate5m, ingestStatKillsRate5m int) {
 	<style>
 		.stats {
 			display: flex;
@@ -352,8 +351,6 @@ templ Stats(stats []StatsTable, updatedAt time.Time, ingestStatSessionRate5m, in
 		}
 	</style>
 	<div style="text-align: center;">
-		Updated at: { updatedAt.Format(time.DateTime) }
-		({ time.Since(updatedAt).Round(time.Second).String() } ago)
 		Ingest rate: { ingestStatSessionRate5m } sessions { ingestStatKillsRate5m } kills per 5 minutes
 	</div>
 	<div class="stats">

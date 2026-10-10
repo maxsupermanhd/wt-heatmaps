@@ -72,9 +72,6 @@ func main() {
 	stopHttp := goflexutils.StartBackgroundRoutine(log.Logger, "http", httpRoutine)
 	stopIngest := goflexutils.StartBackgroundRoutine(log.Logger, "ingest", ingestRoutine)
 
-	go reportCall(func() { levelStatsSorted.Refresh(bgctx) }, "warming level sorting cache")
-	go reportCall(func() { cachedStatsTables.Refresh(bgctx) }, "warming stat tables cache")
-
 	log.Info().Msg("init done")
 	<-bgctx.Done()
 	log.Info().Msg("shutting down")
