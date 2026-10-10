@@ -16,7 +16,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var cachedStatsTables = fclcache.NewValueRefresh(wb, 30*time.Minute, collectStatsTables)
+var cachedStatsTables = fclcache.NewValueRefresh(wb, 10*time.Minute, collectStatsTables)
 
 func collectStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
 	ret := []frontend.StatsTable{}
