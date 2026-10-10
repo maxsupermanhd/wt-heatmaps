@@ -93,7 +93,7 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 		})
 	}
 	return []frontend.StatsTable{{
-		Caption:      "Records by level",
+		Caption:      "Records by level<br/>at " + time.Now().Format(time.DateTime),
 		ColumnLabels: []string{"", "Level", "Count"},
 		Rows:         byLevelRows,
 	}}, nil
@@ -128,7 +128,7 @@ func statsGetByDay(ctx context.Context) ([]frontend.StatsTable, error) {
 		})
 	}
 	return []frontend.StatsTable{{
-		Caption:      "Records by date",
+		Caption:      "Records by date<br/>at " + time.Now().Format(time.DateTime),
 		ColumnLabels: []string{"Time (UTC)", "Count", ""},
 		Rows:         byDayRows,
 	}}, nil
@@ -155,7 +155,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 		byBR[br] = byBR[br] + c
 	}
 	tableByBR := frontend.StatsTable{
-		Caption:      "Records by BR",
+		Caption:      "Records by BR<br/>at " + time.Now().Format(time.DateTime),
 		ColumnLabels: []string{"", "BR", "Count", ""},
 		Rows:         [][]templ.Component{},
 	}
@@ -179,7 +179,7 @@ func statsGetByVehicles(ctx context.Context) ([]frontend.StatsTable, error) {
 		})
 	}
 	tableByVehicles := frontend.StatsTable{
-		Caption:      "Records by vehicles",
+		Caption:      "Records by vehicles<br/>at " + time.Now().Format(time.DateTime),
 		ColumnLabels: []string{"Vehicle", "BR", "Count"},
 		Rows:         [][]templ.Component{},
 	}
@@ -229,7 +229,7 @@ func statsGetInteresting(ctx context.Context) ([]frontend.StatsTable, error) {
 		})
 	}
 	return []frontend.StatsTable{{
-		Caption:      "Interesting",
+		Caption:      "Interesting<br/>at " + time.Now().Format(time.DateTime),
 		ColumnLabels: []string{"Name", "ID", "K", "D", "K/D"},
 		Rows:         ret,
 	}}, nil

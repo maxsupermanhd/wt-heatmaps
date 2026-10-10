@@ -357,7 +357,9 @@ templ Stats(stats []StatsTable, ingestStatSessionRate5m, ingestStatKillsRate5m i
 		for _, t := range stats {
 			<div class="stat">
 				<table>
-					<caption style="caption-side: top">{ t.Caption }</caption>
+					<caption style="caption-side: top">
+						@templ.Raw(t.Caption)
+					</caption>
 					<thead>
 						<tr>
 							for _, v := range t.ColumnLabels {
