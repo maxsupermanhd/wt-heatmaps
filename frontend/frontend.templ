@@ -215,22 +215,10 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 templ vehicleClassSelector(name string) {
 	<select name={ name }>
 		<option selected></option>
-		<option value="exp_assault">assault</option>
-		<option value="exp_bomber">bomber</option>
-		<option value="exp_cruiser">cruiser</option>
-		<option value="exp_destroyer">destroyer</option>
-		<option value="exp_fighter">fighter</option>
-		<option value="exp_gun_boat">gun_boat</option>
 		<option value="exp_heavy_tank">heavy_tank</option>
-		<option value="exp_helicopter">helicopter</option>
-		<option value="exp_human">human</option>
-		<option value="exp_naval_ferry_barge">naval_ferry_barge</option>
 		<option value="exp_SPAA">SPAA</option>
-		<option value="exp_submarine_chaser">submarine_chaser</option>
-		<option value="exp_tank">tank</option>
+		<option value="exp_tank">tank (light+medium)</option>
 		<option value="exp_tank_destroyer">tank_destroyer</option>
-		<option value="exp_torpedo_boat">torpedo_boat</option>
-		<option value="exp_torpedo_gun_boat">torpedo_gun_boat</option>
 	</select>
 }
 
