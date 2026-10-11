@@ -114,12 +114,12 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 		log.Err(err).Msg("level stats sorted")
 		return frontend.Page(frontend.TextNode("something went really wrong"))
 	}
-	vehicles, err := ks.GetVehicles(r.Context())
-	if err != nil {
-		log.Err(err).Msg("level stats sorted")
-		return frontend.Page(frontend.TextNode("something went really wrong"))
-	}
-	slices.Sort(vehicles)
+	// vehicles, err := ks.GetVehicles(r.Context())
+	// if err != nil {
+	// 	log.Err(err).Msg("level stats sorted")
+	// 	return frontend.Page(frontend.TextNode("something went really wrong"))
+	// }
+	// slices.Sort(vehicles)
 	return frontend.Page(frontend.Index(levels, vehicleEconomyCatalog.GetRankMax()))
 }
 
