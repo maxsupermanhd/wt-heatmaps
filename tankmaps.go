@@ -81,7 +81,8 @@ func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	k := base64.StdEncoding.EncodeToString([]byte(r.PathValue("k")))
+	reqLevel := strings.TrimSuffix(r.PathValue("k"), ".png")
+	k := base64.StdEncoding.EncodeToString([]byte(reqLevel))
 	if resizeTo == 128 {
 		cachedSmallTankmapsLock.Lock()
 		cachedSmall, ok := cachedSmallTankmaps[k]

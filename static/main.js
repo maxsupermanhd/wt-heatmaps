@@ -113,7 +113,7 @@ form.addEventListener("submit", (e) => {
 	loadHeat(f.get("level"), "/render/heat?" + new URLSearchParams(f).toString());
 	document
 		.getElementById("tankmap")
-		.setAttribute("href", "/minimap/2048/" + f.get("level"));
+		.setAttribute("href", "/minimap/2048/" + f.get("level") + ".png");
 });
 
 const heatImage = document.getElementById("heat");
