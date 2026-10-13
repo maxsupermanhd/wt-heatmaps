@@ -8,10 +8,7 @@ ATM hosted at: https://thunder.nanachi.party/
 
 ## Supporting infrastructure
 
-Couple deps:
-
-- Downloading, parsing and carving (currently offloaded to Lux infrastructure
-at https://wtapi.dev/ but can be done via my wrpl-inspector)
+- Downloading, parsing and carving service based on websocket and protobufs (bring your own!)
 
 ## Screenshots
 
