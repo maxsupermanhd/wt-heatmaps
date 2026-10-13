@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"main/frontend"
+	"main/lib/ingest"
+	"main/lib/ingest/ingestproto/ingestprotogen"
 	killstorage "main/lib/killstorage-duckdb"
-	"main/lib/lux"
-	"main/lib/lux/luxproto/luxprotogen"
 	"main/lib/ratetrack"
 	"maps"
 	"os"
@@ -67,15 +67,14 @@ var (
 )
 
 func ingestRoutine(exitChan <-chan struct{}) {
-	luxToken, haveLuxToken := cfg.GetString("lux", "token")
-	if !haveLuxToken {
-		log.Info().Msg("no lux.token so not ingesting")
+	if cfg.GetDString("", "ingest", "token") == "" {
+		log.Info().Msg("no ingest.token so not ingesting")
 		return
 	}
 
 	var wg sync.WaitGroup
 	ctx, cancel := context.WithCancel(context.Background())
-	carvesChan := make(chan *luxprotogen.Replay, 16)
+	carvesChan := make(chan *ingestprotogen.Replay, 16)
 	preferencesChan := make(chan any, 16)
 	reconnectExitChan := make(chan struct{})
 	updatePreferencesExitChan := make(chan struct{})
@@ -113,7 +112,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 	wg.Go(func() {
 		rate := ratetrack.NewRateTracker(5*time.Minute, ingestStatSessionRate5m, ingestStatKillsRate5m)
 		for carve := range carvesChan {
-			kills, err := killstorage.LuxCarveToKills(carve)
+			kills, err := killstorage.IngestCarveToKills(carve)
 			if err != nil {
 				log.Err(err).Msg("carve to kills fail")
 				b, _ := json.Marshal(carve)
@@ -129,7 +128,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 		log.Info().Msg("carve loop exited")
 	})
 	wg.Go(func() {
-		defer log.Info().Msg("lux loop exited")
+		defer log.Info().Msg("ingest loop exited")
 		defer close(carvesChan)
 		for {
 			select {
@@ -149,8 +148,8 @@ func ingestRoutine(exitChan <-chan struct{}) {
 					break
 				}
 			}
-			err := lux.FetchFromLux(log.Logger, ctx.Done(), carvesChan, preferencesChan, luxToken)
-			log.Err(err).Msg("lux fetch exited")
+			err := ingest.FetchFromIngest(log.Logger, cfg.LinkSubTree("ingest"), ctx.Done(), carvesChan, preferencesChan)
+			log.Err(err).Msg("ingest fetch exited")
 		}
 	})
 

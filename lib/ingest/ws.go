@@ -1,4 +1,4 @@
-package lux
+package ingest
 
 import (
 	"crypto/tls"
@@ -6,13 +6,14 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"main/lib/lux/luxproto/luxprotogen"
+	"main/lib/ingest/ingestproto/ingestprotogen"
 	"net"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/DataDog/zstd"
+	"github.com/maxsupermanhd/lac/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/shamaton/msgpack/v3"
@@ -20,10 +21,14 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<- *luxprotogen.Replay, preferences <-chan any, token string) error {
-	ws, err := dialLux(log, token)
+func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{}, carvesChan chan<- *ingestprotogen.Replay, preferences <-chan any) error {
+	ws, err := dialIngest(log, cfg)
 	if err != nil {
-		return fmt.Errorf("dial lux: %w", err)
+		return fmt.Errorf("dial ingest: %w", err)
+	}
+	if ws == nil {
+		<-exitChan
+		return nil
 	}
 	shouldCloseWriter := make(chan struct{})
 	wsClose := sync.OnceFunc(func() {
@@ -85,7 +90,7 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 			}
 			switch msgType {
 			default:
-				log.Warn().Int("type", int(msgType)).Msg("unknown websocket frame from lux")
+				log.Warn().Int("type", int(msgType)).Msg("unknown websocket frame from ingest")
 			case websocket.TextFrame:
 				log.Info().Str("data", string(msg)).Msg("text frame")
 			case websocket.BinaryFrame:
@@ -149,24 +154,29 @@ func FetchFromLux(log zerolog.Logger, exitChan <-chan struct{}, carvesChan chan<
 	return errors.Join(errWrite, errRead)
 }
 
-func dialLux(log zerolog.Logger, token string) (*websocket.Conn, error) {
-	wsConfig, err := websocket.NewConfig("wss://wtapi.dev/v1/replays/ws/random", "https://wtapi.dev/")
+func dialIngest(log zerolog.Logger, cfg lac.Conf) (*websocket.Conn, error) {
+	token := cfg.GetDString("", "token")
+	if token == "" {
+		log.Info().Msg("ingest token not set, not ingesting")
+		return nil, nil
+	}
+	wsConfig, err := websocket.NewConfig(cfg.GetDString("", "endpoint"), cfg.GetDString("", "origin"))
 	if err != nil {
 		return nil, err
 	}
 	wsConfig.Header.Add("Authorization", token)
 	wsConfig.TlsConfig = &tls.Config{
-		ServerName:         "wtapi.dev",
+		ServerName:         cfg.GetDString("", "SNIHostname"),
 		InsecureSkipVerify: false,
 		MinVersion:         0,
 		MaxVersion:         0,
 	}
-	log.Info().Msg("dialing lux")
-	wsConn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, "tcp", "wtapi.dev:443", wsConfig.TlsConfig.Clone())
+	log.Info().Msg("dialing ingest")
+	wsConn, err := tls.DialWithDialer(&net.Dialer{Timeout: 5 * time.Second}, "tcp", cfg.GetDString("", "dialAddr"), wsConfig.TlsConfig.Clone())
 	if err != nil {
 		return nil, err
 	}
-	log.Info().Msg("lux connected")
+	log.Info().Msg("ingest connected")
 	wsConn.SetDeadline(time.Now().Add(5 * time.Second))
 	// ws, err := websocket.NewClient(wsConfig, &wsInspectRWC{conn: wsConn})
 	ws, err := websocket.NewClient(wsConfig, wsConn)

@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"main/lib/lux/luxproto/luxprotogen"
+	"main/lib/ingest/ingestproto/ingestprotogen"
 	"os"
 	"strconv"
 	"strings"
@@ -42,7 +42,7 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 	return nil
 }
 
-func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
+func IngestCarveToKills(carve *ingestprotogen.Replay) (ret []Kill, err error) {
 	ret = []Kill{}
 	if carve == nil {
 		return
@@ -86,11 +86,11 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 		if len(kill.OffenderPos) != 3 {
 			return ret, fmt.Errorf("offender pos is not 3 elements: %v", kill.OffenderPos)
 		}
-		killerTeam, err := luxCarveToKillsGetPlayerTeam(carve, kill.OffenderUid)
+		killerTeam, err := ingestCarveToKillsGetPlayerTeam(carve, kill.OffenderUid)
 		if err != nil {
 			return ret, err
 		}
-		victimTeam, err := luxCarveToKillsGetPlayerTeam(carve, kill.OffendedUid)
+		victimTeam, err := ingestCarveToKillsGetPlayerTeam(carve, kill.OffendedUid)
 		if err != nil {
 			return ret, err
 		}
@@ -125,7 +125,7 @@ func LuxCarveToKills(carve *luxprotogen.Replay) (ret []Kill, err error) {
 	return
 }
 
-func luxCarveToKillsGetPlayerTeam(carve *luxprotogen.Replay, uid string) (int, error) {
+func ingestCarveToKillsGetPlayerTeam(carve *ingestprotogen.Replay, uid string) (int, error) {
 	for _, p := range carve.Light.Players {
 		if p == nil {
 			continue
