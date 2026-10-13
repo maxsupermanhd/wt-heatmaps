@@ -105,7 +105,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 					return
 				}
 
-				var m luxprotogen.Envelope
+				var m ingestprotogen.Envelope
 
 				// timings = time.Now()
 
@@ -126,7 +126,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 					return
 				}
 
-				var carve luxprotogen.Replay
+				var carve ingestprotogen.Replay
 				errRead = proto.Unmarshal(m.Body, &carve)
 				if errRead != nil {
 					log.Err(err).Msg("reading envelope body")
@@ -147,7 +147,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 		}
 	})
 
-	log.Info().Msg("lux ws open")
+	log.Info().Msg("ingest ws open")
 
 	wg.Wait()
 
