@@ -135,6 +135,9 @@ async function loadHeat(level, url) {
 		if (probe.src != "") {
 			URL.revokeObjectURL(probe.src);
 		}
+		loadingIndicators.heat = false;
+		updateLoadingIndicators();
+		document.getElementById("settingsSubmitBtnText").innerText = "Failed";
 		return;
 	}
 	if (load != heatLoad) {
