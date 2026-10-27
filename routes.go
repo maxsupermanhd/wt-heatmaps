@@ -17,6 +17,8 @@ import (
 	"sync"
 	"time"
 
+	_ "embed"
+
 	"github.com/a-h/templ"
 	"github.com/fogleman/gg"
 	"github.com/maxsupermanhd/flexcorallib/fclcache"
@@ -29,6 +31,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", httpLog(handle404))
 	mux.HandleFunc("GET /robots.txt", httpLog(handleRobots))
+	mux.HandleFunc("GET /favicon.ico", httpLog(handleFavicon))
 	mux.HandleFunc("GET /static/{name...}", httpLog(staticAssets.ServeHTTP))
 	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), cachedKSAmountsByLevel)))
 	mux.HandleFunc("GET /stats", httpLog(ensureCached(compRenderFn(serveStats),
@@ -550,6 +553,14 @@ func servePermaRedirect(location string) func(w http.ResponseWriter, r *http.Req
 func handleRobots(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	fmt.Fprint(w, "User-agent: *\nAllow: /\n")
+}
+
+//go:embed static/nanachi-favicon.png
+var embedFavicon []byte
+
+func handleFavicon(w http.ResponseWriter, _ *http.Request) {
+	w.WriteHeader(200)
+	w.Write(embedFavicon)
 }
 
 func apiAuthorizedFor(w http.ResponseWriter, r *http.Request, intent string) bool {

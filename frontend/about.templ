@@ -3,7 +3,7 @@ package frontend
 import "runtime/debug"
 
 templ About() {
-	<div style="max-width: 700px;margin-left: auto; margin-right: auto;">
+	<div style="max-width: 700px; margin-left: auto; margin-right: auto; padding: 0.4em; border-radius: 0.5em; background: #111a; z-index: 5;">
 		<p>
 			War Thunder Heatmaps is a small project aimed at revival of now defunct WT-Heatmaps project made by
 			<a href="https://github.com/Sgambe33">Sgambe33</a>. Everything you see on this website was made possible with
@@ -34,8 +34,10 @@ templ About() {
 		</p>
 		<p>
 			If you want to use images or data generated/stored by the website feel free to contact me to get API or database access.
-			<i>(Warning: if you are fully reliant on an LLM to do everything you will get immediately blocked with no response,
-			you must have real skills and a lot of motivation for me to consider giving you access)</i>
+			<i>
+				(Warning: if you are fully reliant on an LLM to do everything you will get immediately blocked with no response,
+				you must have real skills and a lot of motivation for me to consider giving you access)
+			</i>
 			API access is completely free with no strings attached. If you want something custom (either rendering or
 			various data aggregates/views) it can be added.
 		</p>
@@ -44,9 +46,11 @@ templ About() {
 			<ul>
 				<li><a href="https://discord.gg/2dTx8GdTj5">Discord</a> (@flexcoral ID 343418440423309314)</li>
 				<li>Telegram @flexcoral</li>
-				<li>Discussions or issues on GitHub repositories of
+				<li>
+					Discussions or issues on GitHub repositories of
 					<a href="https://github.com/maxsupermanhd/wrpl-inspector">wrpl-inspector</a>
-					or <a href="https://github.com/maxsupermanhd/wt-heatmaps">wt-heatmaps</a></li>
+					or <a href="https://github.com/maxsupermanhd/wt-heatmaps">wt-heatmaps</a>
+				</li>
 				<li>contact@nanachi.party if you live under a rock</li>
 			</ul>
 		</p>
@@ -61,4 +65,6 @@ templ About() {
 			}
 		</p>
 	</div>
+	<img src="/static/nanachi-transparent.png" style="position: fixed; bottom: 0; left 0; max-height: 50vh; max-width: 100vw; z-index: 0;"
+		title="Nanachi holding target practice cone-stabilized discarding-sabot tracered (TPCSDS-T) M324 shell"/>
 }
