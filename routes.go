@@ -3,10 +3,8 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"image"
 	"image/color"
 	"main/frontend"
-	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/staticassets"
 	"math"
 	"net/http"
@@ -126,73 +124,6 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 	return frontend.Page(frontend.Index(levels, vehicleEconomyCatalog.GetRankMax()))
 }
 
-func serveHeat(w http.ResponseWriter, r *http.Request) {
-	perf := time.Now()
-	q := r.URL.Query()
-	level := q.Get("level")
-	if level == "" {
-		w.WriteHeader(204)
-		return
-	}
-
-	levelOffsets, err := getLevelOffsets(level)
-	if err != nil {
-		log.Err(err).Msg("get level offsets")
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	kq := buildKillQuery(q, level)
-	if kq == nil {
-		w.WriteHeader(204)
-		return
-	}
-
-	// log.Info().Msg(kq.Dump())
-
-	tally, err := ks.GetKillCountsByCoord(r.Context(), kq)
-	if err != nil {
-		log.Err(err).Msg("get kills")
-		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
-	areaH := float32(math.Abs(float64(levelOffsets.TankMap0[1] - levelOffsets.TankMap1[1])))
-	areaOffsetX := levelOffsets.TankMap0[0]
-	areaOffsetZ := levelOffsets.TankMap0[1]
-	outputW := int(areaW)
-	outputH := int(areaH)
-	out := image.NewRGBA(image.Rect(0, 0, outputW, outputH))
-
-	scoreIntensity := urlValueIntOr(q, "scoreIntensity", 32)
-	countIntensity := urlValueIntOr(q, "countIntensity", 32)
-
-	// log.Info().Msgf("scale %f %f area %f %f offsets %#v", scaleW, scaleH, areaW, areaH, levelOffsets)
-	totalN := 0
-	for _, v := range tally {
-		tx := math.Round(float64(float64((float32(v.X)-areaOffsetX)/areaW) * float64(outputW)))
-		tz := math.Round(float64(float64(1-(float32(v.Z)-areaOffsetZ)/areaH) * float64(outputH)))
-
-		out.SetRGBA(int(tx), int(tz), color.RGBA{
-			R: uint8(max(min(v.Score*scoreIntensity, 255), 0)),
-			G: uint8(max(min(v.Score*v.Score, 255), 0) / 2),
-			B: uint8(max(min(-v.Score*scoreIntensity, 255), 0)),
-			A: uint8(min(v.Count*countIntensity, 255)),
-		})
-		totalN += v.Count
-	}
-	ggStrings(gg.NewContextForImage(out), 20, 20, color.RGBA{R: 255, G: 255, B: 255, A: 128}, color.RGBA{R: 0, G: 0, B: 0, A: 255},
-		"Rendered by FlexCoral at thunder.nanachi.party",
-		"Data provided by Lux",
-		fmt.Sprintf("Data points: %d", totalN),
-		time.Now().Round(0).String(),
-	).EncodePNG(w)
-	log.Info().Dur("perf", time.Since(perf)).Int("nPix", len(tally)).Int("nDp", totalN).Msg("heat")
-}
-
 func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 	perf := time.Now()
 	q := r.URL.Query()
@@ -254,106 +185,6 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, `</g>`)
 	// out.EncodePNG(w)
 	log.Info().Dur("perf", time.Since(perf)).Int("nPix", len(tally)).Int("nDp", totalN).Msg("heat")
-}
-
-func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
-	kq := &killstorage.QueryConditions{}
-	if !ks.QueryWithLevel(kq, level) {
-		return nil
-	}
-	if val := urlValueInt(q, "team"); val != nil {
-		kq.QueryWithTeam(*val)
-	}
-	if val := urlValueInt(q, "killTimeMin"); val != nil {
-		kq.QueryWithKillTimeMin(time.Duration(*val) * time.Second)
-	}
-	if val := urlValueInt(q, "killTimeMax"); val != nil {
-		kq.QueryWithKillTimeMax(time.Duration(*val) * time.Second)
-	}
-	killerVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "killerBattleRatingMin"), urlValueInt(q, "killerBattleRatingMax"))
-	if val := q.Get("killerVehicleClass"); val != "" {
-		log.Info().Str("killerVehicleClass", val).Msg("killerVehicleClass")
-		if len(killerVehicles) == 0 {
-			for k, v := range vehicleEconomyCatalog.Vehicles {
-				if v.UnitClass == val {
-					killerVehicles = append(killerVehicles, k)
-				}
-			}
-		} else {
-			filtered := []string{}
-			for _, v := range killerVehicles {
-				if vehicleEconomyCatalog.Vehicles[v].UnitClass == val {
-					filtered = append(filtered, v)
-				}
-			}
-			killerVehicles = filtered
-		}
-	}
-	if val := q.Get("killerVehicleCountry"); val != "" {
-		if len(killerVehicles) == 0 {
-			for k, v := range vehicleEconomyCatalog.Vehicles {
-				if v.Country == val {
-					killerVehicles = append(killerVehicles, k)
-				}
-			}
-		} else {
-			filtered := []string{}
-			for _, v := range killerVehicles {
-				if vehicleEconomyCatalog.Vehicles[v].Country == val {
-					filtered = append(filtered, v)
-				}
-			}
-			killerVehicles = filtered
-		}
-	}
-	if len(killerVehicles) > 0 {
-		for i := range killerVehicles {
-			killerVehicles[i] = "tankmodels/" + killerVehicles[i]
-		}
-		ks.QueryWithKillerVehicles(kq, killerVehicles)
-	}
-	victimVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax"))
-	if val := q.Get("victimVehicleClass"); val != "" {
-		if len(victimVehicles) == 0 {
-			for k, v := range vehicleEconomyCatalog.Vehicles {
-				if v.UnitClass == val {
-					victimVehicles = append(victimVehicles, k)
-				}
-			}
-		} else {
-			filtered := []string{}
-			for _, v := range victimVehicles {
-				if vehicleEconomyCatalog.Vehicles[v].UnitClass == val {
-					filtered = append(filtered, v)
-				}
-			}
-			victimVehicles = filtered
-		}
-	}
-	if val := q.Get("victimVehicleCountry"); val != "" {
-		if len(victimVehicles) == 0 {
-			for k, v := range vehicleEconomyCatalog.Vehicles {
-				if v.Country == val {
-					victimVehicles = append(victimVehicles, k)
-				}
-			}
-		} else {
-			filtered := []string{}
-			for _, v := range victimVehicles {
-				if vehicleEconomyCatalog.Vehicles[v].Country == val {
-					filtered = append(filtered, v)
-				}
-			}
-			victimVehicles = filtered
-		}
-	}
-	if len(victimVehicles) > 0 {
-		for i := range victimVehicles {
-			victimVehicles[i] = "tankmodels/" + victimVehicles[i]
-		}
-		ks.QueryWithVictimVehicles(kq, victimVehicles)
-	}
-	return kq
 }
 
 const areaStatsLimit = 25

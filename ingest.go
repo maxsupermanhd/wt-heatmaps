@@ -11,6 +11,7 @@ import (
 	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/ratetrack"
 	"maps"
+	"math"
 	"os"
 	"slices"
 	"strings"
@@ -123,6 +124,70 @@ func ingestRoutine(exitChan <-chan struct{}) {
 			if err != nil {
 				log.Err(err).Int("n", len(kills)).Msg("storing kills")
 			}
+			lv := kills[0].Level
+			cachedHeat.Access(lv, func(hp []killstorage.KillTally) ([]killstorage.KillTally, error) {
+				if hp == nil {
+					hp = []killstorage.KillTally{}
+					kq := &killstorage.QueryConditions{}
+					ks.QueryWithLevel(kq, lv)
+					hp, err = ks.GetKillCountsByCoord(context.Background(), kq)
+					if err != nil {
+						log.Err(err).Msg("GetKillCountsByCoord while caching")
+						return hp, err
+					}
+					// slices.SortFunc(hp, func(a, b killstorage.KillTally) int {
+					// 	if a.X < b.X {
+					// 		return -1
+					// 	}
+					// 	if a.X > b.X {
+					// 		return +1
+					// 	}
+					// 	if a.Z < b.Z {
+					// 		return -1
+					// 	}
+					// 	if a.Z > b.Z {
+					// 		return +1
+					// 	}
+					// 	return 0
+					// })
+				}
+				// todo: this is very stupid
+				for _, v := range kills {
+					kx := int(math.Round(v.KillerPosX))
+					kz := int(math.Round(v.KillerPosZ))
+					vx := int(math.Round(v.VictimPosX))
+					vz := int(math.Round(v.VictimPosZ))
+					foundKillPos := false
+					foundDeathPos := false
+					for ii, vv := range hp {
+						if vv.X == kx && vv.Z == kz {
+							hp[ii].Kills++
+							foundKillPos = true
+						}
+						if vv.X == vx && vv.Z == vz {
+							hp[ii].Deaths++
+							foundDeathPos = true
+						}
+					}
+					if !foundKillPos {
+						hp = append(hp, killstorage.KillTally{
+							X:      kx,
+							Z:      kz,
+							Kills:  1,
+							Deaths: 0,
+						})
+					}
+					if !foundDeathPos {
+						hp = append(hp, killstorage.KillTally{
+							X:      vx,
+							Z:      vz,
+							Kills:  0,
+							Deaths: 1,
+						})
+					}
+				}
+				return hp, nil
+			})
 			rate.Measure(len(kills))
 		}
 		log.Info().Msg("carve loop exited")

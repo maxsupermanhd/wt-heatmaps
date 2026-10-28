@@ -92,32 +92,32 @@ func (q *QueryConditions) Dump() string {
 }
 
 type KillTally struct {
-	X, Z  int
-	Score int
-	Count int
+	X, Z   int
+	Kills  int
+	Deaths int
 }
 
 func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryConditions) ([]KillTally, error) {
 	if conds == nil {
 		return nil, errors.ErrUnsupported
 	}
-	qKillValue := "+1"
-	qDeathValue := "-1"
+	qKillValue := "1"
+	qDeathValue := "1"
 	if conds.hasTeamFilter {
-		qKillValue = `CASE WHEN t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN +1 ELSE 0 END`
-		qDeathValue = `CASE WHEN t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN -1 ELSE 0 END`
+		qKillValue = `CASE WHEN t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN 1 ELSE 0 END`
+		qDeathValue = `CASE WHEN t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN 1 ELSE 0 END`
 	}
 	q := `SELECT
   (ROUND(p.x))::int AS x,
   (ROUND(p.z))::int AS z,
-  SUM(p.delta) AS score,
-  COUNT(p) FILTER (WHERE p.delta <> 0) AS count
+  SUM(p.iskill) AS kills,
+  SUM(p.isdeath) AS deaths
 FROM kills t
 CROSS JOIN LATERAL (
   VALUES
-    (t.killer_posx, t.killer_posz, ` + qKillValue + `),
-    (t.victim_posx, t.victim_posz, ` + qDeathValue + `)
-) AS p(x, z, delta)
+    (t.killer_posx, t.killer_posz, ` + qKillValue + `, 0),
+    (t.victim_posx, t.victim_posz, 0, ` + qDeathValue + `)
+) AS p(x, z, iskill, isdeath)
 ` + conds.WhereCase() + `
 GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
 	rows, err := s.db.QueryContext(ctx, q, conds.whereArgs...)
@@ -129,7 +129,7 @@ GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
 	}
 	// log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
 	return CollectRows(rows, func(row CollectableRow) (ret KillTally, err error) {
-		err = row.Scan(&ret.X, &ret.Z, &ret.Score, &ret.Count)
+		err = row.Scan(&ret.X, &ret.Z, &ret.Kills, &ret.Deaths)
 		return
 	})
 }
