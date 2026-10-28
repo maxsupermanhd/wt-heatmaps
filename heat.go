@@ -40,6 +40,7 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	var out *gg.Context
 	workFn := func(kt []killstorage.KillTally) ([]killstorage.KillTally, error) {
 		if kt == nil {
+			perf := time.Now()
 			kq := buildKillQuery(q, level)
 			if kq == nil {
 				w.WriteHeader(204)
@@ -54,19 +55,21 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte(err.Error()))
 				return kt, err
 			}
-			// 	log.Info().Msg("cache miss")
-			// } else {
-			// 	log.Info().Msg("cache hit")
+			log.Info().Msgf("heat perf cache miss took %s", time.Since(perf).String())
+		} else {
+			log.Info().Msg("heat perf cache hit")
 		}
 		out = renderTally(levelOffsets, kt, q)
 		return kt, nil
 	}
 
+	perf := time.Now()
 	if isDefaultQuery(q) {
 		err = cachedHeat.Access(level, workFn)
 	} else {
 		_, err = workFn(nil)
 	}
+	log.Info().Msgf("heat perf total %s", time.Since(perf).String())
 	if err != nil {
 		return
 	}
@@ -75,6 +78,7 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 }
 
 func renderTally(levelOffsets levelcoords.LevelCoords, tally []killstorage.KillTally, q url.Values) *gg.Context {
+	perf := time.Now()
 
 	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
 	areaH := float32(math.Abs(float64(levelOffsets.TankMap0[1] - levelOffsets.TankMap1[1])))
@@ -116,10 +120,14 @@ func renderTally(levelOffsets levelcoords.LevelCoords, tally []killstorage.KillT
 		}
 	}
 
-	return ggStrings(gg.NewContextForImage(out), 20, 20, color.RGBA{R: 255, G: 255, B: 255, A: 128}, color.RGBA{R: 0, G: 0, B: 0, A: 255},
+	ret := ggStrings(gg.NewContextForImage(out), 20, 20, color.RGBA{R: 255, G: 255, B: 255, A: 128}, color.RGBA{R: 0, G: 0, B: 0, A: 255},
 		"Rendered by FlexCoral at thunder.nanachi.party",
 		"Data provided by Lux",
 		fmt.Sprintf("Data points: %d", totalN),
 		time.Now().Round(0).String(),
 	)
+
+	log.Info().Msgf("heat perf render took %s", time.Since(perf).String())
+
+	return ret
 }
