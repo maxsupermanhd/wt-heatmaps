@@ -10,8 +10,6 @@ import (
 
 func isDefaultQuery(vals url.Values) bool {
 	d := map[string]string{
-		"scoreIntensity":        "",
-		"countIntensity":        "",
 		"team":                  "",
 		"killTimeMin":           "",
 		"killTimeMax":           "",
