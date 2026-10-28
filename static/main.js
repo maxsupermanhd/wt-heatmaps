@@ -99,10 +99,13 @@ form.addEventListener("submit", (e) => {
 	}
 	e.preventDefault();
 	let f = new FormData(form);
-	if (f.get("level") == "") {
+	if (loadingIndicators.heat) {
 		return;
 	}
-	if (loadingIndicators.heat) {
+	for (let [name, value] of Array.from(f.entries())) {
+		if (value === '') f.delete(name);
+	}
+	if (f.get("level") == "") {
 		return;
 	}
 	loadingIndicators.heat = true;
