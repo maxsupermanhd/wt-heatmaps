@@ -120,6 +120,12 @@ func ingestRoutine(exitChan <-chan struct{}) {
 				os.WriteFile("dump.json", b, 0644)
 				continue
 			}
+			if len(kills) == 0 {
+				log.Error().Msg("no kills in the session?")
+				b, _ := json.Marshal(carve)
+				os.WriteFile("dump.json", b, 0644)
+				continue
+			}
 			err = ks.StoreKills(kills)
 			if err != nil {
 				log.Err(err).Int("n", len(kills)).Msg("storing kills")
