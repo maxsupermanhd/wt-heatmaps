@@ -151,7 +151,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			templ_7745c5c3_Var6 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"content\"><div class=\"map\"><div id=\"loadingIndicators\" class=\"loadingIndicators\"></div><svg id=\"mapview\" width=\"100%\" height=\"100%\" xmlns=\"http://www.w3.org/2000/svg\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><text x=\"200\" y=\"280\" style=\"font: bold 80px sans-serif; fill: #ddd;\">Select the map and press \"Load\"</text> <text x=\"200\" y=\"380\" style=\"font: normal 40px sans-serif; fill: #aaa;\">Data is being rendered in real time with a LOT of data points on very low power hardware,</text> <text x=\"200\" y=\"420\" style=\"font: normal 40px sans-serif; fill: #aaa;\">please be patient, it can take few seconds for it to load.</text> <image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated; width:2048px; height:2048px\" id=\"heat\"></image> <rect id=\"areaSelect\" style=\"display: none; fill: #ffffff20; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke;\"></rect> <g id=\"mapviewLines\"></g></svg></div><div id=\"settingsDiv\" class=\"settings\"><p>Display settings:</p><form id=\"settingsForm\"><p><label for=\"level\">Map:</label> <button type=\"button\" popovertarget=\"levelSelector\">Select</button> <input id=\"settingsFormLevelInput\" name=\"level\" readonly><div popover id=\"levelSelector\"><center><b>Select map:</b></center> <input id=\"levelSelectorSearch\" type=\"search\" placeholder=\"Search maps...\" autocomplete=\"off\" autofocus><table><thead><tr><th>Level name<br>Data points</th><th>Image</th></tr></thead> <tbody>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 8, "<div class=\"content\"><div class=\"map\"><div id=\"loadingIndicators\" class=\"loadingIndicators\"></div><svg id=\"mapview\" width=\"100%\" height=\"100%\" xmlns=\"http://www.w3.org/2000/svg\"><style>\n\t\t\t\t\t#tankmap {\n\t\t\t\t\t\tfilter: brightness(35%)\n\t\t\t\t\t}\n\t\t\t\t</style><text x=\"200\" y=\"280\" style=\"font: bold 80px sans-serif; fill: #ddd;\">Select the map and press \"Load\"</text> <text x=\"200\" y=\"380\" style=\"font: normal 40px sans-serif; fill: #aaa;\">Data is being rendered in real time with a LOT of data points on very low power hardware,</text> <text x=\"200\" y=\"420\" style=\"font: normal 40px sans-serif; fill: #aaa;\">please be patient, it can take few seconds for it to load.</text> <image style=\"image-rendering: pixelated;\" id=\"tankmap\"></image> <image style=\"image-rendering: pixelated; width:2048px; height:2048px\" id=\"heat\"></image> <rect id=\"areaSelect\" style=\"display: none; fill: #ffffff20; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke;\"></rect> <g id=\"mapviewLines\"></g></svg></div><div id=\"settingsDiv\" class=\"settings\"><form id=\"settingsForm\"><p><label for=\"level\">Map:</label> <button type=\"button\" popovertarget=\"levelSelector\">Select</button> <input id=\"settingsFormLevelInput\" name=\"level\" readonly><div popover id=\"levelSelector\"><center><b>Select map:</b></center> <input id=\"levelSelectorSearch\" type=\"search\" placeholder=\"Search maps...\" autocomplete=\"off\" autofocus><table><thead><tr><th>Level name<br>Data points</th><th>Image</th></tr></thead> <tbody>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -163,7 +163,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var7 string
 			templ_7745c5c3_Var7, templ_7745c5c3_Err = templ.ResolveAttributeValue(v.Level)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 124, Col: 166}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 123, Col: 166}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var7)
 			if templ_7745c5c3_Err != nil {
@@ -176,7 +176,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var8 string
 			templ_7745c5c3_Var8, templ_7745c5c3_Err = templ.JoinStringErrs(v.LevelDisplay)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 124, Col: 242}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 123, Col: 242}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var8))
 			if templ_7745c5c3_Err != nil {
@@ -189,7 +189,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var9 string
 			templ_7745c5c3_Var9, templ_7745c5c3_Err = templ.JoinStringErrs(v.Samples)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 126, Col: 33}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 125, Col: 33}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var9))
 			if templ_7745c5c3_Err != nil {
@@ -202,7 +202,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var10 string
 			templ_7745c5c3_Var10, templ_7745c5c3_Err = templ.ResolveAttributeValue("/minimap/128/" + v.Level + ".png")
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 130, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 129, Col: 59}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var10)
 			if templ_7745c5c3_Err != nil {
@@ -213,7 +213,7 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 				return templ_7745c5c3_Err
 			}
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</tbody></table></div></p><p><label for=\"scoreIntensity\">Exposure</label> <input name=\"scoreIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"> <label for=\"countIntensity\">Brightness</label> <input name=\"countIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"> <span><button type=\"button\" popovertarget=\"helpExposureBrightness\">ⓘ</button></span><div popover id=\"helpExposureBrightness\" style=\"max-width: 600px\" class=\"mainstyle\">Following multipliers directly control k/d score exposure and intensity (brightness):<br>exposure being how big of a delta sways to red/green (bigger ⇒ more solid colors) and<br>brightness being amount of data points available (bigger ⇒ less transparent).<br>For example, 8+64 can be used to find <i>especially high</i> k/d positions while dimming down floating noise whereas 64+255 will just fill the screen with the \"average\", no matter how much data is available or how conclusive it might be.</div></p><p><label for=\"team\">Team:</label> <input name=\"team\" type=\"number\" value=\"\" min=\"1\" max=\"2\"></p><p><label for=\"killTimeMin\">Kill time (seconds) min</label> <input name=\"killTimeMin\" type=\"number\" value=\"\" min=\"0\" max=\"1800\"> <label for=\"killTimeMax\">max</label> <input name=\"killTimeMax\" type=\"number\" value=\"\" min=\"0\" max=\"1800\"><br><small>First <i>spawns</i> actually occur at around 40 second mark, offset filters accordingly.</small></p><p>Killer vehicle BR from")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 14, "</tbody></table></div></p><p>Display settings:</p><p><label for=\"scoreIntensity\">Exposure</label> <input name=\"scoreIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"> <label for=\"countIntensity\">Brightness</label> <input name=\"countIntensity\" type=\"number\" value=\"32\" min=\"1\" max=\"255\"> <span><button type=\"button\" popovertarget=\"helpExposureBrightness\">ⓘ</button></span><div popover id=\"helpExposureBrightness\" style=\"max-width: 600px\" class=\"mainstyle\">Following multipliers directly control k/d score exposure and intensity (brightness):<br>exposure being how big of a delta sways to red/green (bigger ⇒ more solid colors) and<br>brightness being amount of data points available (bigger ⇒ less transparent).<br>For example, 8+64 can be used to find <i>especially high</i> k/d positions while dimming down floating noise whereas 64+255 will just fill the screen with the \"average\", no matter how much data is available or how conclusive it might be.</div></p><p>Data filters:</p><p><label for=\"team\">Team:</label> <input name=\"team\" type=\"number\" value=\"\" min=\"1\" max=\"2\"></p><p><label for=\"killTimeMin\">Kill time (seconds) min</label> <input name=\"killTimeMin\" type=\"number\" value=\"\" min=\"0\" max=\"1800\"> <label for=\"killTimeMax\">max</label> <input name=\"killTimeMax\" type=\"number\" value=\"\" min=\"0\" max=\"1800\"><br><small>First <i>spawns</i> actually occur at around 40 second mark, offset filters accordingly.</small></p><p>Killer vehicle BR from")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -277,14 +277,14 @@ func Index(levels []LevelStat, battleRatingMax int) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</p><p><button type=\"submit\" id=\"settingsSubmitBtn\"><span style=\"font-size: larger;font-weight: bold;\" id=\"settingsSubmitBtnText\">Load</span></button><div><small>Controls: drag to pan, scroll to zoom, double click to reset viewport</small></div></p><p><label for=\"brightness\">Map brightness</label> <input id=\"tankmapBrightnessSlider\" style=\"max-width: 200px; vertical-align: middle;\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\" value=\"35\"></p></form></div><div class=\"areastats\"><p><button type=\"button\" id=\"areaSelectBtn\">Select area</button><br><small>Press \"Select area\", then drag a box on the map to get the kills and deaths of every vehicle in it. The filters above apply to the box as well.</small></p><div id=\"areaStatsResults\"></div></div></div><script type=\"module\" src=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 22, "</p><p><button type=\"submit\" id=\"settingsSubmitBtn\"><span style=\"font-size: larger;font-weight: bold;\" id=\"settingsSubmitBtnText\">Load</span></button><div><small>Controls: drag to pan, scroll to zoom, double click to reset viewport</small></div><div><small>Note: using data filters will miss cache, stay patient while it chugs through all the data</small></div></p><p><label for=\"brightness\">Map brightness</label> <input id=\"tankmapBrightnessSlider\" style=\"max-width: 200px; vertical-align: middle;\" name=\"brightness\" type=\"range\" min=\"0\" max=\"100\" value=\"35\"></p></form></div><div class=\"areastats\"><p><button type=\"button\" id=\"areaSelectBtn\">Select area</button><br><small>Press \"Select area\", then drag a box on the map to get the kills and deaths of every vehicle in it. The filters above apply to the box as well.</small></p><div id=\"areaStatsResults\"></div></div></div><script type=\"module\" src=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		var templ_7745c5c3_Var11 string
 		templ_7745c5c3_Var11, templ_7745c5c3_Err = templ.ResolveAttributeValue(StaticAssets.URL("main.js"))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 214, Col: 56}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 218, Col: 56}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var11)
 		if templ_7745c5c3_Err != nil {
@@ -326,7 +326,7 @@ func vehicleClassSelector(name string) templ.Component {
 		var templ_7745c5c3_Var13 string
 		templ_7745c5c3_Var13, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 218, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 222, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var13)
 		if templ_7745c5c3_Err != nil {
@@ -368,7 +368,7 @@ func vehicleCountrySelector(name string) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 228, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 232, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var15)
 		if templ_7745c5c3_Err != nil {
@@ -410,7 +410,7 @@ func brSelector(name string, battleRatingMax int) templ.Component {
 		var templ_7745c5c3_Var17 string
 		templ_7745c5c3_Var17, templ_7745c5c3_Err = templ.ResolveAttributeValue(name)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 244, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 248, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var17)
 		if templ_7745c5c3_Err != nil {
@@ -428,7 +428,7 @@ func brSelector(name string, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var18 string
 			templ_7745c5c3_Var18, templ_7745c5c3_Err = templ.ResolveAttributeValue(i)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 247, Col: 20}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 251, Col: 20}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var18)
 			if templ_7745c5c3_Err != nil {
@@ -441,7 +441,7 @@ func brSelector(name string, battleRatingMax int) templ.Component {
 			var templ_7745c5c3_Var19 string
 			templ_7745c5c3_Var19, templ_7745c5c3_Err = templ.JoinStringErrs(BRString(i))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 247, Col: 36}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 251, Col: 36}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var19))
 			if templ_7745c5c3_Err != nil {
@@ -501,7 +501,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 		var templ_7745c5c3_Var21 string
 		templ_7745c5c3_Var21, templ_7745c5c3_Err = templ.JoinStringErrs(widthMeters)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 267, Col: 20}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 271, Col: 20}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var21))
 		if templ_7745c5c3_Err != nil {
@@ -514,7 +514,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 		var templ_7745c5c3_Var22 string
 		templ_7745c5c3_Var22, templ_7745c5c3_Err = templ.JoinStringErrs(heightMeters)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 267, Col: 39}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 271, Col: 39}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var22))
 		if templ_7745c5c3_Err != nil {
@@ -538,7 +538,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 			var templ_7745c5c3_Var23 string
 			templ_7745c5c3_Var23, templ_7745c5c3_Err = templ.JoinStringErrs(total)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 278, Col: 10}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 282, Col: 10}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var23))
 			if templ_7745c5c3_Err != nil {
@@ -551,7 +551,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 			var templ_7745c5c3_Var24 string
 			templ_7745c5c3_Var24, templ_7745c5c3_Err = templ.JoinStringErrs(KillDeathRatio(globKills, globDeaths))
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 278, Col: 83}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 282, Col: 83}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var24))
 			if templ_7745c5c3_Err != nil {
@@ -569,7 +569,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var25 string
 				templ_7745c5c3_Var25, templ_7745c5c3_Err = templ.JoinStringErrs(limit)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 281, Col: 27}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 285, Col: 27}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var25))
 				if templ_7745c5c3_Err != nil {
@@ -606,7 +606,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var26 string
 				templ_7745c5c3_Var26, templ_7745c5c3_Err = templ.JoinStringErrs(v.Kills)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 302, Col: 19}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 306, Col: 19}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var26))
 				if templ_7745c5c3_Err != nil {
@@ -619,7 +619,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var27 string
 				templ_7745c5c3_Var27, templ_7745c5c3_Err = templ.JoinStringErrs(v.Deaths)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 303, Col: 20}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 307, Col: 20}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var27))
 				if templ_7745c5c3_Err != nil {
@@ -632,7 +632,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var28 string
 				templ_7745c5c3_Var28, templ_7745c5c3_Err = templ.JoinStringErrs(v.Kills + v.Deaths)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 304, Col: 28}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 308, Col: 28}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var28))
 				if templ_7745c5c3_Err != nil {
@@ -645,7 +645,7 @@ func AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit 
 				var templ_7745c5c3_Var29 string
 				templ_7745c5c3_Var29, templ_7745c5c3_Err = templ.JoinStringErrs(KillDeathRatio(v.Kills, v.Deaths))
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 305, Col: 45}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 309, Col: 45}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var29))
 				if templ_7745c5c3_Err != nil {
@@ -693,7 +693,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 		var templ_7745c5c3_Var31 string
 		templ_7745c5c3_Var31, templ_7745c5c3_Err = templ.ResolveAttributeValue("https://static.encyclopedia.warthunder.com/slots/" + v.ID + ".png")
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 314, Col: 99}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 318, Col: 99}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var31)
 		if templ_7745c5c3_Err != nil {
@@ -716,7 +716,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 		var templ_7745c5c3_Var32 templ.SafeURL
 		templ_7745c5c3_Var32, templ_7745c5c3_Err = templ.JoinURLErrs("https://wiki.warthunder.com/unit/" + v.ID)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 318, Col: 53}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 322, Col: 53}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var32))
 		if templ_7745c5c3_Err != nil {
@@ -734,7 +734,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 			var templ_7745c5c3_Var33 string
 			templ_7745c5c3_Var33, templ_7745c5c3_Err = templ.JoinStringErrs(v.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 320, Col: 12}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 324, Col: 12}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var33))
 			if templ_7745c5c3_Err != nil {
@@ -748,7 +748,7 @@ func VehicleLabel(v Vehicle) templ.Component {
 			var templ_7745c5c3_Var34 string
 			templ_7745c5c3_Var34, templ_7745c5c3_Err = templ.JoinStringErrs(v.ID)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 322, Col: 9}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 326, Col: 9}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var34))
 			if templ_7745c5c3_Err != nil {
@@ -797,7 +797,7 @@ func Stats(stats []StatsTable, ingestStatSessionRate5m, ingestStatKillsRate5m in
 		var templ_7745c5c3_Var36 string
 		templ_7745c5c3_Var36, templ_7745c5c3_Err = templ.JoinStringErrs(ingestStatSessionRate5m)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 344, Col: 40}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 348, Col: 40}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var36))
 		if templ_7745c5c3_Err != nil {
@@ -810,7 +810,7 @@ func Stats(stats []StatsTable, ingestStatSessionRate5m, ingestStatKillsRate5m in
 		var templ_7745c5c3_Var37 string
 		templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(ingestStatKillsRate5m)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 344, Col: 75}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 348, Col: 75}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 		if templ_7745c5c3_Err != nil {
@@ -841,7 +841,7 @@ func Stats(stats []StatsTable, ingestStatSessionRate5m, ingestStatKillsRate5m in
 				var templ_7745c5c3_Var38 string
 				templ_7745c5c3_Var38, templ_7745c5c3_Err = templ.JoinStringErrs(v)
 				if templ_7745c5c3_Err != nil {
-					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 356, Col: 15}
+					return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 360, Col: 15}
 				}
 				_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var38))
 				if templ_7745c5c3_Err != nil {
@@ -921,7 +921,7 @@ func StatElementFixedPercentBar(percent float64) templ.Component {
 		var templ_7745c5c3_Var40 string
 		templ_7745c5c3_Var40, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %dpx", int(math.Round(100*percent))))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 378, Col: 92}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 382, Col: 92}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var40))
 		if templ_7745c5c3_Err != nil {
@@ -934,7 +934,7 @@ func StatElementFixedPercentBar(percent float64) templ.Component {
 		var templ_7745c5c3_Var41 string
 		templ_7745c5c3_Var41, templ_7745c5c3_Err = templruntime.SanitizeStyleAttributeValues(fmt.Sprintf("width: %dpx", int(math.Round(100*(1-percent)))))
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 378, Col: 196}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 382, Col: 196}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var41))
 		if templ_7745c5c3_Err != nil {
@@ -972,7 +972,7 @@ func TextNode(content string) templ.Component {
 		var templ_7745c5c3_Var43 string
 		templ_7745c5c3_Var43, templ_7745c5c3_Err = templ.JoinStringErrs(content)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 382, Col: 10}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `frontend/frontend.templ`, Line: 386, Col: 10}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var43))
 		if templ_7745c5c3_Err != nil {
