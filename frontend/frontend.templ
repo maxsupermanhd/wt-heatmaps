@@ -83,14 +83,24 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 					#tankmap {
 						filter: brightness(35%)
 					}
+					.mapview-text-heading {
+						user-select: none;
+						font: bold 80px sans-serif;
+						fill: #ddd;
+					}
+					.mapview-text-normal {
+						user-select: none;
+						font: normal 40px sans-serif;
+						fill: #aaa;
+					}
 				</style>
-				<text x="200" y="280" style="font: bold 80px sans-serif; fill: #ddd;">
+				<text x="200" y="280" class="mapview-text-heading">
 					Select the map and press "Load"
 				</text>
-				<text x="200" y="380" style="font: normal 40px sans-serif; fill: #aaa;">
+				<text x="200" y="380" class="mapview-text-normal">
 					Data is being rendered in real time with a LOT of data points on very low power hardware,
 				</text>
-				<text x="200" y="420" style="font: normal 40px sans-serif; fill: #aaa;">
+				<text x="200" y="420" class="mapview-text-normal">
 					please be patient, it can take few seconds for it to load.
 				</text>
 				<image style="image-rendering: pixelated;" id="tankmap"></image>
