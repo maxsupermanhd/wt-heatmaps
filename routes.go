@@ -44,6 +44,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /data/arrows", httpLog(serveAreaArrows))
 	mux.HandleFunc("GET /data/areastats", httpLog(compRenderFn(serveAreaStats)))
 	mux.HandleFunc("GET /api/v1/region", httpLog(serveRegion))
+	mux.HandleFunc("GET /api/v1/ingestPreferences", httpLog(serveIngestPreferences))
 
 	mux.HandleFunc("GET /debug/duckdbmemory", httpLog(serveDebugDuckdbMemory))
 	mux.HandleFunc("GET /debug/wpcost", httpLog(serveDebugWpcost))

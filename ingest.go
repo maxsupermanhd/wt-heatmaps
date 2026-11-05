@@ -11,7 +11,7 @@ import (
 	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/ratetrack"
 	"maps"
-	"math"
+	"net/http"
 	"os"
 	"slices"
 	"strings"
@@ -63,8 +63,9 @@ var (
 	ingestStatSessionRate5m = &atomic.Int64{}
 	ingestStatKillsRate5m   = &atomic.Int64{}
 
-	ingestCurrentPreferencesLock sync.Mutex
-	ingestCurrentPreferences     ingestPreferences
+	ingestCurrentPreferencesLock       sync.Mutex
+	ingestCurrentPreferences           ingestPreferences
+	ingestCurrentPreferencesUpdateTime time.Time
 )
 
 func ingestRoutine(exitChan <-chan struct{}) {
@@ -106,6 +107,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 				}
 				ingestCurrentPreferencesLock.Lock()
 				ingestCurrentPreferences = prefs
+				ingestCurrentPreferencesUpdateTime = time.Now()
 				ingestCurrentPreferencesLock.Unlock()
 			}
 		}
@@ -277,4 +279,24 @@ func getPreferences() (ret ingestPreferences, err error) {
 	}
 	ret.reqIDs, _ = cfg.GetKeys("interesting")
 	return
+}
+
+func serveIngestPreferences(w http.ResponseWriter, r *http.Request) {
+	ingestCurrentPreferencesLock.Lock()
+	cur := ingestCurrentPreferences
+	t := ingestCurrentPreferencesUpdateTime
+	ingestCurrentPreferencesLock.Unlock()
+	if !cur.Populated() {
+		w.WriteHeader(204)
+		return
+	}
+	b, err := cur.MarshalJSON()
+	if err != nil {
+		log.Err(err).Msg("marshal prefs for api")
+		w.WriteHeader(500)
+		return
+	}
+	w.Header().Add("Last-Modified", t.Format("Mon, 02 Jan 2006 15:04:05")+" GMT")
+	w.WriteHeader(200)
+	w.Write(b)
 }
