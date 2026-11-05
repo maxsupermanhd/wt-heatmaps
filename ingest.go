@@ -88,6 +88,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 		}
 		ingestCurrentPreferencesLock.Lock()
 		ingestCurrentPreferences = prefs
+		ingestCurrentPreferencesUpdateTime = time.Now()
 		ingestCurrentPreferencesLock.Unlock()
 		log.Err(err).Str("prefs", fmt.Sprintf("%#+v", prefs)).Msg("got initial preferences")
 		for {
