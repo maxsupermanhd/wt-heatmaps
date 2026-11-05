@@ -9,6 +9,7 @@ import (
 	killstorage "main/lib/killstorage-duckdb"
 	"os"
 	"os/signal"
+	"strconv"
 
 	"github.com/maxsupermanhd/flexcorallib/fcl"
 	"github.com/maxsupermanhd/flexcorallib/fclcache"
@@ -31,6 +32,9 @@ var (
 )
 
 func main() {
+
+	must(os.WriteFile("/proc/"+strconv.Itoa(os.Getpid())+"/oom_score_adj", []byte("1000"), 0644))
+
 	configLoad(*flConfigPath)
 	log.Logger = log.Output(io.MultiWriter(
 		zerolog.ConsoleWriter{Out: os.Stderr},

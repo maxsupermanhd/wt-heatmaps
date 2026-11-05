@@ -92,9 +92,9 @@ func (q *QueryConditions) Dump() string {
 }
 
 type KillTally struct {
-	X, Z   int
-	Kills  int
-	Deaths int
+	X, Z   int32
+	Kills  uint32
+	Deaths uint32
 }
 
 func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryConditions) ([]KillTally, error) {

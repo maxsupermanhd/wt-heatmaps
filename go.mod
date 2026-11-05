@@ -14,7 +14,7 @@ require (
 	github.com/maxsupermanhd/lac/v2 v2.0.0-20250603135754-053986d885c5
 	github.com/rs/zerolog v1.35.1
 	github.com/shamaton/msgpack/v3 v3.2.3
-	golang.org/x/image v0.46.0
+	golang.org/x/image v0.47.0
 	golang.org/x/net v0.59.0
 	google.golang.org/protobuf v1.36.12
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -41,5 +41,5 @@ require (
 	github.com/pierrec/lz4/v4 v4.1.33 // indirect
 	github.com/zeebo/xxh3 v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20260908205506-85c1c2202aba // indirect
-	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/sys v0.49.0 // indirect
 )
