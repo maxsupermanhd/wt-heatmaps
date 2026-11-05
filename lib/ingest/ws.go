@@ -41,7 +41,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 	var errWrite, errRead error
 
 	wg.Go(func() {
-		defer log.Info().Msg("write pump exited")
+		defer log.Err(errWrite).Msg("write pump exited")
 		codec := websocket.Codec{
 			Marshal: func(v any) (data []byte, payloadType byte, err error) {
 				data, err = json.Marshal(v)
@@ -70,7 +70,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 	})
 
 	wg.Go(func() {
-		defer log.Info().Msg("read pump exited")
+		defer log.Err(errRead).Msg("read pump exited")
 		msgpack.StructAsArray = false
 		msgDecompressed := make([]byte, 0, 20_000_000)
 		var msg []byte
@@ -111,7 +111,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 
 				errRead = proto.Unmarshal(msgDecompressed, &m)
 				if errRead != nil {
-					log.Err(err).Msg("reading envelope")
+					log.Err(errRead).Msg("reading envelope")
 					wsClose()
 					return
 				}
@@ -129,7 +129,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 				var carve ingestprotogen.Replay
 				errRead = proto.Unmarshal(m.Body, &carve)
 				if errRead != nil {
-					log.Err(err).Msg("reading envelope body")
+					log.Err(errRead).Msg("reading envelope body")
 					wsClose()
 					return
 				}
