@@ -6,5 +6,4 @@ config.json
 *.db
 *.wal
 notification.html*
-cmd/animate/out
 dump.json
