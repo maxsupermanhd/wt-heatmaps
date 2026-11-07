@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"main/frontend"
 	"main/lib/imagecolorsort"
-	killstorage "main/lib/killstorage-duckdb"
 	"main/lib/levelcoords"
 	"os"
-	"slices"
 	"strings"
 
 	"github.com/rs/zerolog/log"
@@ -23,9 +21,9 @@ func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
 	if err != nil {
 		return nil, err
 	}
-	levelNames := make([]string, len(levelAmounts))
-	for i, v := range levelAmounts {
-		levelNames[i] = v.LevelName
+	levelNames := make([]string, 0, len(levelAmounts))
+	for k := range levelAmounts {
+		levelNames = append(levelNames, k)
 	}
 	err = levelByColorSorter.Sort(levelNames)
 	if err != nil {
@@ -36,9 +34,7 @@ func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
 		levels = append(levels, frontend.LevelStat{
 			Level:        levelName,
 			LevelDisplay: levelToLocalized(levelName),
-			Samples: levelAmounts[slices.IndexFunc(levelAmounts, func(val killstorage.AmountsByLevelRow) bool {
-				return val.LevelName == levelName
-			})].Count,
+			Samples:      levelAmounts[levelName],
 		})
 	}
 	return levels, nil

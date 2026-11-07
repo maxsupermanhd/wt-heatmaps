@@ -24,6 +24,20 @@ func (s *KillsStorage) GetVehicles(ctx context.Context) (vehicles []string, err 
 	})
 }
 
+func (s *KillsStorage) GetLevels(ctx context.Context) (levels []string, err error) {
+	rows, err := s.db.QueryContext(ctx, `select distinct level from kills;`)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return []string{}, nil
+		}
+		return nil, err
+	}
+	return CollectRows(rows, func(row CollectableRow) (ret string, err error) {
+		err = row.Scan(&ret)
+		return
+	})
+}
+
 type AmountsByLevelRow struct {
 	LevelName string
 	Count     int

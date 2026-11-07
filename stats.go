@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"main/frontend"
-	killstorage "main/lib/killstorage-duckdb"
 	"maps"
 	"net/http"
 	"slices"
@@ -13,38 +12,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
-	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"github.com/rs/zerolog/log"
-)
-
-var (
-	cachedKSAmountsByLevel = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) ([]killstorage.AmountsByLevelRow, error) {
-		return ks.GetAmountsByLevel(ctx)
-	})
-	cachedKSAmountsByDay = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) (map[time.Time]int, error) {
-		return ks.GetAmountsByDay(ctx)
-	})
-	cachedKSAmountsByVehicle = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) (map[string]int, error) {
-		return ks.GetAmountsByVehicle(ctx)
-	})
-	cachedKSAmountsByInteresting = fclcache.NewValueRefresh(wb, 10*time.Minute, func(ctx context.Context) ([]killstorage.InterestKillsDeathsRow, error) {
-		idsStrings, ok := cfg.GetKeys("interesting")
-		if !ok {
-			return nil, nil
-		}
-		req := map[uint64]string{}
-		for _, idString := range idsStrings {
-			id, err := strconv.ParseUint(idString, 10, 64)
-			if err != nil {
-				continue
-			}
-			name, ok := cfg.GetString("interesting", idString)
-			if ok {
-				req[id] = name
-			}
-		}
-		return ks.GetAmountsOfInteresting(ctx, slices.Collect(maps.Keys(req)))
-	})
 )
 
 func getStatsTables(ctx context.Context) ([]frontend.StatsTable, error) {
@@ -73,14 +41,14 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 	}
 	byLevelMax := 0
 	for _, v := range byLevel {
-		byLevelMax = max(byLevelMax, v.Count)
+		byLevelMax = max(byLevelMax, v)
 	}
 	byLevelRows := [][]templ.Component{}
 	ingestCurrentPreferencesLock.Lock()
 	reqMaps := ingestCurrentPreferences.reqMaps
 	ingestCurrentPreferencesLock.Unlock()
-	for _, k := range byLevel {
-		levelName := levelToLocalized(k.LevelName)
+	for k, v := range byLevel {
+		levelName := levelToLocalized(k)
 		isRequested := ""
 		if slices.Contains(reqMaps, levelName) {
 			isRequested = "↓"
@@ -88,8 +56,8 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 		byLevelRows = append(byLevelRows, []templ.Component{
 			frontend.TextNode(isRequested),
 			frontend.TextNode(levelName),
-			frontend.TextNode(strconv.Itoa(k.Count)),
-			frontend.StatElementFixedPercentBar(float64(k.Count) / float64(byLevelMax)),
+			frontend.TextNode(strconv.Itoa(v)),
+			frontend.StatElementFixedPercentBar(float64(v) / float64(byLevelMax)),
 		})
 	}
 	return []frontend.StatsTable{{

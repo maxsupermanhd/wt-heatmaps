@@ -42,13 +42,16 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		err = cachedHeat.Access(level, func(a *cachedHeatAggregate) (*cachedHeatAggregate, error) {
 			if a == nil {
 				perf := time.Now()
-				a, err = cachedHeatInitAggregate(level)
+				a, err = cachedHeatInitAggregate(r.Context(), level)
 				log.Info().Msgf("heat perf cache miss took %s", time.Since(perf).String())
 			} else {
 				log.Info().Msg("heat perf cache hit")
 			}
+			if err != nil {
+				return a, err
+			}
 			out = renderTally(levelOffsets, a.Loop(), q)
-			return a, err
+			return a, nil
 		})
 	} else {
 		kq := buildKillQuery(q, level)

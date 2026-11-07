@@ -136,7 +136,7 @@ func ingestRoutine(exitChan <-chan struct{}) {
 				log.Err(err).Int("n", len(kills)).Msg("storing kills")
 			}
 			lv := kills[0].Level
-			cachedHeatPopulate(lv, kills)
+			cachedHeatPopulate(context.Background(), lv, kills)
 			rate.Measure(len(kills))
 		}
 		log.Info().Msg("carve loop exited")

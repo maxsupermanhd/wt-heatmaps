@@ -5,10 +5,61 @@ import (
 	"iter"
 	"main/lib/killstorage-duckdb"
 	lm "main/lib/lockingmap"
+	"maps"
 	"math"
 	"slices"
+	"strconv"
+	"time"
 
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"github.com/rs/zerolog/log"
+)
+
+var (
+	cachedKSAmountsByLevel = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) (map[string]int, error) {
+		levels, err := ks.GetLevels(ctx)
+		if err != nil {
+			return nil, err
+		}
+		for _, k := range levels {
+			err = cachedHeat.Access(k, func(c *cachedHeatAggregate) (*cachedHeatAggregate, error) {
+				if c != nil {
+					return c, nil
+				}
+				return cachedHeatInitAggregate(ctx, k)
+			})
+			if err != nil {
+				return nil, err
+			}
+		}
+		return cachedHeatGetDataPointsPerLevel(), nil
+	})
+	cachedKSAmountsByDay = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) (map[time.Time]int, error) {
+		return ks.GetAmountsByDay(ctx)
+	})
+	cachedKSAmountsByVehicle = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) (map[string]int, error) {
+		return ks.GetAmountsByVehicle(ctx)
+	})
+	cachedKSAmountsByInteresting = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) ([]killstorage.InterestKillsDeathsRow, error) {
+		idsStrings, ok := cfg.GetKeys("interesting")
+		if !ok {
+			return nil, nil
+		}
+		req := map[uint64]string{}
+		for _, idString := range idsStrings {
+			id, err := strconv.ParseUint(idString, 10, 64)
+			if err != nil {
+				continue
+			}
+			name, ok := cfg.GetString("interesting", idString)
+			if ok {
+				req[id] = name
+			}
+		}
+		return ks.GetAmountsOfInteresting(ctx, slices.Collect(maps.Keys(req)))
+	})
+
+	cachedHeat = lm.LockingMap[*cachedHeatAggregate]{}
 )
 
 type cachedHeatAggregatePoint struct {
@@ -45,15 +96,22 @@ func (a *cachedHeatAggregate) Loop() iter.Seq[*killstorage.KillTally] {
 	}
 }
 
-var (
-	cachedHeat = lm.LockingMap[*cachedHeatAggregate]{}
-)
+func cachedHeatGetDataPointsPerLevel() map[string]int {
+	ret := map[string]int{}
+	cachedHeat.AccessExclusive(func(m map[string]*cachedHeatAggregate) (map[string]*cachedHeatAggregate, error) {
+		for k, v := range m {
+			ret[k] = int(v.sumKills)
+		}
+		return m, nil
+	})
+	return ret
+}
 
-func cachedHeatInitAggregate(k string) (*cachedHeatAggregate, error) {
+func cachedHeatInitAggregate(ctx context.Context, k string) (*cachedHeatAggregate, error) {
 	a := &cachedHeatAggregate{}
 	kq := &killstorage.QueryConditions{}
 	ks.QueryWithLevel(kq, k)
-	t, err := ks.GetKillCountsByCoord(context.Background(), kq)
+	t, err := ks.GetKillCountsByCoord(ctx, kq)
 	if err != nil {
 		log.Err(err).Msg("GetKillCountsByCoord while caching")
 		return a, err
@@ -103,11 +161,11 @@ func cachedHeatInitAggregate(k string) (*cachedHeatAggregate, error) {
 	return a, nil
 }
 
-func cachedHeatPopulate(k string, kills []killstorage.Kill) error {
+func cachedHeatPopulate(ctx context.Context, k string, kills []killstorage.Kill) error {
 	return cachedHeat.Access(k, func(a *cachedHeatAggregate) (*cachedHeatAggregate, error) {
 		if a == nil {
 			var err error
-			a, err = cachedHeatInitAggregate(k)
+			a, err = cachedHeatInitAggregate(ctx, k)
 			if err != nil {
 				return a, err
 			}
