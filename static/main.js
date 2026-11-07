@@ -128,8 +128,8 @@ async function loadHeat(level, url) {
 	const probe = new Image();
 	try {
 		const resp = await fetch(url);
-		if (!resp.ok) {
-			return;
+		if (resp.status != 200) {
+			throw "resp not ok";
 		}
 		probe.src = URL.createObjectURL(await resp.blob());
 		// a 204 answer carries no image, so this rejects and the map stays
