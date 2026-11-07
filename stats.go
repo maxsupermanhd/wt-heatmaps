@@ -41,14 +41,14 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 	}
 	byLevelMax := 0
 	for _, v := range byLevel {
-		byLevelMax = max(byLevelMax, v)
+		byLevelMax = max(byLevelMax, v.Count)
 	}
 	byLevelRows := [][]templ.Component{}
 	ingestCurrentPreferencesLock.Lock()
 	reqMaps := ingestCurrentPreferences.reqMaps
 	ingestCurrentPreferencesLock.Unlock()
-	for k, v := range byLevel {
-		levelName := levelToLocalized(k)
+	for _, k := range byLevel {
+		levelName := levelToLocalized(k.LevelName)
 		isRequested := ""
 		if slices.Contains(reqMaps, levelName) {
 			isRequested = "↓"
@@ -56,8 +56,8 @@ func statsGetByLevel(ctx context.Context) ([]frontend.StatsTable, error) {
 		byLevelRows = append(byLevelRows, []templ.Component{
 			frontend.TextNode(isRequested),
 			frontend.TextNode(levelName),
-			frontend.TextNode(strconv.Itoa(v)),
-			frontend.StatElementFixedPercentBar(float64(v) / float64(byLevelMax)),
+			frontend.TextNode(strconv.Itoa(k.Count)),
+			frontend.StatElementFixedPercentBar(float64(k.Count) / float64(byLevelMax)),
 		})
 	}
 	return []frontend.StatsTable{{

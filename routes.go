@@ -67,16 +67,21 @@ func ensureCached(work http.HandlerFunc, checks ...fclcache.ValueCacheCommon) ht
 		waitroomChecksMu.Lock()
 		waitroomChecks[r.URL.Path] = checks
 		waitroomChecksMu.Unlock()
+		isReady := true
 		for _, c := range checks {
 			if !c.Ready() {
+				isReady = false
 				c.Refresh(r.Context())
 			}
 		}
-		for _, c := range checks {
-			if !c.Ready() {
-				w.Header().Add("Location", "/waitroom/"+url.PathEscape(r.URL.Path))
-				w.WriteHeader(http.StatusFound)
-				return
+		if !isReady {
+			time.Sleep(250 * time.Millisecond)
+			for _, c := range checks {
+				if !c.Ready() {
+					w.Header().Add("Location", "/waitroom/"+url.PathEscape(r.URL.Path))
+					w.WriteHeader(http.StatusFound)
+					return
+				}
 			}
 		}
 		work(w, r)

@@ -16,31 +16,28 @@ import (
 )
 
 var (
-	cachedKSAmountsByLevel = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) (map[string]int, error) {
-		levels, err := ks.GetLevels(ctx)
-		if err != nil {
-			return nil, err
-		}
-		for _, k := range levels {
-			err = cachedHeat.Access(k, func(c *cachedHeatAggregate) (*cachedHeatAggregate, error) {
-				if c != nil {
-					return c, nil
-				}
-				return cachedHeatInitAggregate(ctx, k)
-			})
-			if err != nil {
-				return nil, err
-			}
-		}
-		return cachedHeatGetDataPointsPerLevel(), nil
+	cachedKSAmountsByLevel = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) ([]killstorage.AmountsByLevelRow, error) {
+		perf := time.Now()
+		log.Info().Msg("cache update start by level")
+		defer func() { log.Info().Str("perf", time.Since(perf).String()).Msg("cache update done by level") }()
+		return ks.GetAmountsByLevel(ctx)
 	})
 	cachedKSAmountsByDay = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) (map[time.Time]int, error) {
+		perf := time.Now()
+		log.Info().Msg("cache update start by day")
+		defer func() { log.Info().Str("perf", time.Since(perf).String()).Msg("cache update done by day") }()
 		return ks.GetAmountsByDay(ctx)
 	})
 	cachedKSAmountsByVehicle = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) (map[string]int, error) {
+		perf := time.Now()
+		log.Info().Msg("cache update start by vehicle")
+		defer func() { log.Info().Str("perf", time.Since(perf).String()).Msg("cache update done by vehicle") }()
 		return ks.GetAmountsByVehicle(ctx)
 	})
 	cachedKSAmountsByInteresting = fclcache.NewValueRefresh(wb, 20*time.Minute, func(ctx context.Context) ([]killstorage.InterestKillsDeathsRow, error) {
+		perf := time.Now()
+		log.Info().Msg("cache update start interesting")
+		defer func() { log.Info().Str("perf", time.Since(perf).String()).Msg("cache update done interesting") }()
 		idsStrings, ok := cfg.GetKeys("interesting")
 		if !ok {
 			return nil, nil
