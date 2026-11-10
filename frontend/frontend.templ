@@ -143,6 +143,14 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 						</table>
 					</div>
 				</p>
+				<p>
+					<button type="button" id="liveSyncBtn">Sync with game</button>
+					<span id="liveSyncStatus"></span>
+					<br/>
+					<small>
+						Reads which map is being played from the game at localhost:8111, in this browser, and loads it.
+					</small>
+				</p>
 				<p>Display settings:</p>
 				<p>
 					<label for="scoreIntensity">Exposure</label>

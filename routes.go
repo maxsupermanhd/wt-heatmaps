@@ -43,6 +43,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /render/heat", httpLog(serveHeat))
 	mux.HandleFunc("GET /data/arrows", httpLog(serveAreaArrows))
 	mux.HandleFunc("GET /data/areastats", httpLog(compRenderFn(serveAreaStats)))
+	mux.HandleFunc("GET /data/levelframes", httpLog(serveLevelFrames))
 	mux.HandleFunc("GET /api/v1/region", httpLog(serveRegion))
 	mux.HandleFunc("GET /api/v1/ingestPreferences", httpLog(serveIngestPreferences))
 
@@ -128,6 +129,31 @@ func serveIndex(w http.ResponseWriter, r *http.Request) templ.Component {
 	// }
 	// slices.Sort(vehicles)
 	return frontend.Page(frontend.Index(levels, vehicleEconomyCatalog.GetRankMax()))
+}
+
+// serveLevelFrames lists the tank map frame (tankMapCoord0 and tankMapCoord1)
+// of every level that has data. During a tank battle the game reports the same
+// frame as map_min and map_max in its map_info.json, which is how the live sync
+// in main.js tells which level is being played.
+func serveLevelFrames(w http.ResponseWriter, r *http.Request) {
+	levels, err := cachedKSAmountsByLevel.Get(r.Context())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(err.Error()))
+		return
+	}
+	ret := map[string][4]float32{}
+	for _, v := range levels {
+		c, err := getLevelOffsets(v.LevelName)
+		if err != nil {
+			log.Err(err).Str("level", v.LevelName).Msg("level frame")
+			continue
+		}
+		ret[v.LevelName] = [4]float32{c.TankMap0[0], c.TankMap0[1], c.TankMap1[0], c.TankMap1[1]}
+	}
+	w.Header().Add("Content-Type", "application/json")
+	w.Header().Add("Cache-Control", "public, max-age=3600")
+	json.NewEncoder(w).Encode(ret)
 }
 
 func serveAreaArrows(w http.ResponseWriter, r *http.Request) {

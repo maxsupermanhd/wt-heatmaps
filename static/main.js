@@ -459,3 +459,109 @@ svg.addEventListener("pointerup", (e) => {
 		}
 	});
 });
+
+// live sync, reads the game's own web interface from this browser and loads
+// the map being played. The battle frame in map_info.json (map_min and
+// map_max) is the level's tank map frame, so a frame only one level has names
+// the map. The game answers on localhost:8111 with
+// Access-Control-Allow-Origin: *, so nothing about the battle goes through the
+// server.
+
+const gameURL = "http://localhost:8111";
+const liveBtn = document.getElementById("liveSyncBtn");
+const liveStatus = document.getElementById("liveSyncStatus");
+const levelInput = document.getElementById("settingsFormLevelInput");
+let liveOn = false;
+let liveTimer = null;
+let liveAutoLevel = null;
+let levelFrames = null;
+
+liveBtn.addEventListener("click", () => {
+	if (liveOn) {
+		stopLive();
+		return;
+	}
+	liveOn = true;
+	liveBtn.textContent = "Stop sync";
+	liveStatus.textContent = "Connecting to the game...";
+	liveTick();
+});
+
+function stopLive() {
+	liveOn = false;
+	clearTimeout(liveTimer);
+	liveTimer = null;
+	liveAutoLevel = null;
+	liveBtn.textContent = "Sync with game";
+	liveStatus.textContent = "";
+}
+
+class LiveError extends Error {}
+
+async function liveTick() {
+	if (!liveOn) {
+		return;
+	}
+	try {
+		await liveUpdate();
+	} catch (e) {
+		liveStatus.textContent = e instanceof LiveError ? e.message :
+			"Can't reach the game at localhost:8111. Is War Thunder running? " +
+			"The browser may ask you to allow access to devices on your network.";
+	}
+	if (liveOn) {
+		liveTimer = setTimeout(liveTick, 2000);
+	}
+}
+
+async function liveUpdate() {
+	if (levelFrames == null) {
+		const resp = await fetch("/data/levelframes");
+		if (resp.status != 200) {
+			throw new LiveError("Could not get the map frames from the server.");
+		}
+		levelFrames = await resp.json();
+	}
+	const resp = await fetch(gameURL + "/map_info.json", { signal: AbortSignal.timeout(2000), cache: "no-store" });
+	if (resp.status != 200) {
+		throw new Error(`game answered ${resp.status}`);
+	}
+	const info = await resp.json();
+	if (!info.valid) {
+		liveAutoLevel = null;
+		liveStatus.textContent = "Not in a battle.";
+		return;
+	}
+	const levels = levelsForFrame(info);
+	const shown = heat != null ? heat.level : null;
+	// one load per battle: a failed load is not retried every two seconds
+	if (levels.length == 1 && levels[0] != shown && levels[0] != liveAutoLevel && !loadingIndicators.heat) {
+		liveAutoLevel = levels[0];
+		levelInput.value = levels[0];
+		document.getElementById("settingsSubmitBtn").click();
+	}
+	if (shown != null && levels.includes(shown)) {
+		liveStatus.textContent = "Showing " + levelName(shown) + ", the map being played.";
+	} else if (levels.length == 0) {
+		liveStatus.textContent = "No map here has the frame the game shows (an air map, or a map without data).";
+	} else if (levels.length == 1) {
+		liveStatus.textContent = "Loading " + levelName(levels[0]) + "...";
+	} else {
+		const shownNames = levels.slice(0, 6).map(levelName).join(", ");
+		const more = levels.length > 6 ? ` and ${levels.length - 6} more` : "";
+		liveStatus.textContent = `The battle fits ${levels.length} maps: ${shownNames}${more}. Select the one being played and press Load.`;
+	}
+}
+
+// levelsForFrame returns every level whose tank map frame is the frame of the
+// battle, to the meter. Many levels share the 4096 meter frame, so a frame can
+// name more than one.
+function levelsForFrame(info) {
+	const frame = [info.map_min[0], info.map_min[1], info.map_max[0], info.map_max[1]].map(Math.round).join();
+	return Object.keys(levelFrames).filter((l) => levelFrames[l].map(Math.round).join() == frame);
+}
+
+function levelName(level) {
+	const b = document.querySelector(`[data-level-select-value="${CSS.escape(level)}"]`);
+	return b != null ? b.textContent.trim() : level;
+}
