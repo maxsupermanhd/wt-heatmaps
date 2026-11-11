@@ -154,12 +154,13 @@ func (s *KillsStorage) GetVehicleStatsByArea(ctx context.Context, conds *QueryCo
   p.vehicle,
   COUNT(*) FILTER (WHERE p.delta > 0) AS kills,
   COUNT(*) FILTER (WHERE p.delta < 0) AS deaths
-FROM kills t
-CROSS JOIN LATERAL (
-  VALUES
-    (t.killer_vehicle, t.killer_posx, t.killer_posz, ` + qKillValue + `),
-    (t.victim_vehicle, t.victim_posx, t.victim_posz, ` + qDeathValue + `)
-) AS p(vehicle, x, z, delta)
+FROM (
+  SELECT points.*, p.* FROM (
+    SELECT t.*, t, {'vehicle': t.killer_vehicle, 'x': t.killer_posx, 'z': t.killer_posz, 'delta': ` + qKillValue + `} AS p FROM kills t
+    UNION ALL
+    SELECT t.*, t, {'vehicle': t.victim_vehicle, 'x': t.victim_posx, 'z': t.victim_posz, 'delta': ` + qDeathValue + `} AS p FROM kills t
+  ) points
+) points
 ` + conds.WhereCase() + `
 GROUP BY p.vehicle
 ORDER BY COUNT(*) DESC`
@@ -196,12 +197,13 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions
       ROUND(p.z)::int AS z,
       SUM(p.delta) AS score,
       COUNT(p) FILTER (WHERE p.delta <> 0) AS count
-    FROM kills k
-    CROSS JOIN LATERAL (
-      VALUES
-        (k.killer_posx, k.killer_posz, +1),
-        (k.victim_posx, k.victim_posz, -1)
-    ) AS p(x, z, delta)
+    FROM (
+      SELECT points.*, p.* FROM (
+        SELECT k.*, k, {'x': k.killer_posx, 'z': k.killer_posz, 'delta': +1} AS p FROM kills k
+        UNION ALL
+        SELECT k.*, k, {'x': k.victim_posx, 'z': k.victim_posz, 'delta': -1} AS p FROM kills k
+      ) points
+    ) points
     ` + conds.WhereCase() + `
     GROUP BY ROUND(p.x)::int, ROUND(p.z)::int
     HAVING score > 0
