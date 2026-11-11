@@ -95,7 +95,7 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 					}
 				</style>
 				<text x="200" y="280" class="mapview-text-heading">
-					Select the map and press "Load"
+					Type a map name in the map box
 				</text>
 				<text x="200" y="380" class="mapview-text-normal">
 					Data is being rendered in real time with a LOT of data points on very low power hardware,
@@ -109,154 +109,138 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 				<g id="mapviewLines"></g>
 			</svg>
 		</div>
-		<div id="settingsDiv" class="settings">
-			<form id="settingsForm">
-				<p>
-					<label for="level">Map:</label>
-					<button type="button" popovertarget="levelSelector">Select</button>
-					<input id="settingsFormLevelInput" name="level" readonly/>
-					<div popover id="levelSelector">
-						<center><b>Select map:</b></center>
-						<input id="levelSelectorSearch" type="search" placeholder="Search maps..." autocomplete="off" autofocus/>
-						<table>
-							<thead>
-								<tr>
-									<th>Level name<br/>Data points</th>
-									<th>Image</th>
-								</tr>
-							</thead>
-							<tbody>
-								for _, v := range levels {
-									<tr>
-										<td>
-											<center>
-												<button type="button" onclick="document.getElementById('settingsFormLevelInput').value = this.dataset.levelSelectValue;" data-level-select-value={ v.Level } popovertargetaction="hide" popovertarget="levelSelector">{ v.LevelDisplay }</button>
-												<div>
-													Samples: { v.Samples }
-												</div>
-											</center>
-										</td>
-										<td><img src={ "/minimap/128/" + v.Level + ".png" } width="128" height="128"/></td>
-									</tr>
-								}
-							</tbody>
-						</table>
+		<div class="panelToggles">
+			<button type="button" popovertarget="settingsDiv">Settings</button>
+			<button type="button" popovertarget="areaPanel" id="areaToggle">Area</button>
+		</div>
+		<div id="settingsDiv" class="settings" popover>
+			<form id="settingsForm" class="controls">
+				<section class="ctlGroup">
+					<h3>Map</h3>
+					<input id="mapSearch" type="search" placeholder="Type a map name..." autocomplete="off" role="combobox" aria-controls="levelSelector" aria-expanded="false"/>
+					<input id="settingsFormLevelInput" name="level" type="hidden"/>
+					<div popover="manual" id="levelSelector" class="mapList" role="listbox">
+						for _, v := range levels {
+							<button type="button" role="option" tabindex="-1" data-level={ v.Level } data-name={ v.LevelDisplay }>
+								<img src={ "/minimap/128/" + v.Level + ".png" } width="40" height="40" alt="" loading="lazy"/>
+								<span>{ v.LevelDisplay }</span>
+								<small>{ v.Samples }</small>
+							</button>
+						}
 					</div>
-				</p>
-				<p>Display settings:</p>
-				<p>
-					<label for="scoreIntensity">Exposure</label>
-					<input name="scoreIntensity" type="number" value="32" min="1" max="255"/>
-					<label for="countIntensity">Brightness</label>
-					<input name="countIntensity" type="number" value="32" min="1" max="255"/>
-					<span>
-						<button type="button" popovertarget="helpExposureBrightness">ⓘ</button>
-					</span>
-					<div popover id="helpExposureBrightness" style="max-width: 600px" class="mainstyle">
-						Following multipliers directly control k/d score exposure and intensity (brightness):
-						<br/>
-						exposure being how big of a delta sways to red/green (bigger ⇒ more solid colors) and
-						<br/>
-						brightness being amount of data points available (bigger ⇒ less transparent).
-						<br/>
-						For example, 8+64 can be used to find <i>especially high</i> k/d positions while dimming down
-						floating noise whereas 64+255 will just fill the screen with the "average",
-						no matter how much data is available or how conclusive it might be.
+				</section>
+				<section class="ctlGroup">
+					<h3>Display</h3>
+					<div class="ctlRow">
+						<label for="scoreIntensity">Exposure</label>
+						<input id="scoreIntensity" name="scoreIntensity" type="number" value="32" min="1" max="255"/>
+						<label for="countIntensity">Brightness</label>
+						<input id="countIntensity" name="countIntensity" type="number" value="32" min="1" max="255"/>
+						<button type="button" class="iconBtn" popovertarget="helpExposureBrightness" title="What do these do?">ⓘ</button>
 					</div>
-				</p>
-				<p>Data filters:</p>
-				<p>
-					<label for="team">Team:</label>
-					<input name="team" type="number" value="" min="1" max="2"/>
-				</p>
-				<p>
-					<label for="killTimeMin">Kill time (seconds) min</label>
-					<input name="killTimeMin" type="number" value="" min="0" max="1800"/>
-					<label for="killTimeMax">max</label>
-					<input name="killTimeMax" type="number" value="" min="0" max="1800"/>
-					<br/>
-					<small>First <i>spawns</i> actually occur at around 40 second mark, offset filters accordingly.</small>
-				</p>
-				<p>
-					Killer vehicle BR from
-					@brSelector("killerBattleRatingMin", battleRatingMax)
-					to
-					@brSelector("killerBattleRatingMax", battleRatingMax)
-					<br/>
-					class
-					@vehicleClassSelector("killerVehicleClass")
-					country
-					@vehicleCountrySelector("killerVehicleCountry")
-					<br/>
-					Victim vehicle BR from
-					@brSelector("victimBattleRatingMin", battleRatingMax)
-					to
-					@brSelector("victimBattleRatingMax", battleRatingMax)
-					<br/>
-					class
-					@vehicleClassSelector("victimVehicleClass")
-					country
-					@vehicleCountrySelector("victimVehicleCountry")
-				</p>
-				<p>
-					<button type="submit" id="settingsSubmitBtn"><span style="font-size: larger;font-weight: bold;" id="settingsSubmitBtnText">Load</span></button>
-					<div>
-						<small>Controls: drag to pan, scroll to zoom, double click to reset viewport</small>
+					<div popover id="helpExposureBrightness" class="infoBox">
+						<div class="infoHead">
+							<h3>Exposure and brightness</h3>
+							<button type="button" class="iconBtn" popovertarget="helpExposureBrightness" popovertargetaction="hide" aria-label="Close">✕</button>
+						</div>
+						<p>These two multipliers control how the K/D score of each pixel turns into color.</p>
+						<dl>
+							<dt>Exposure</dt>
+							<dd>How far a K/D difference pushes a pixel to red or to blue. A higher value gives more solid colors.</dd>
+							<dt>Brightness</dt>
+							<dd>How much the number of data points counts. A higher value makes the pixels less transparent.</dd>
+						</dl>
+						<div class="infoExamples">
+							<div>
+								<b>8 + 64</b>
+								<span>Finds positions with an <i>especially high</i> K/D, and dims the noise.</span>
+							</div>
+							<div>
+								<b>64 + 255</b>
+								<span>Fills the screen with the average, no matter how much data there is or how sure it is.</span>
+							</div>
+						</div>
 					</div>
-					<div>
-						<small>Note: using data filters will miss cache, stay patient while it chugs through all the data</small>
+					<div class="ctlRow">
+						<label for="tankmapBrightnessSlider">Map brightness</label>
+						<input id="tankmapBrightnessSlider" type="range" min="0" max="100" value="35"/>
 					</div>
-				</p>
-				<p>
-					<label for="brightness">Map brightness</label>
-					<input id="tankmapBrightnessSlider" style="max-width: 200px; vertical-align: middle;" name="brightness" type="range" min="0" max="100" value="35"/>
-				</p>
+				</section>
+				<section class="ctlGroup">
+					<h3>Filters</h3>
+					<div class="ctlRow">
+						<span class="ctlLabel">Team</span>
+						<div class="segmented" role="radiogroup" aria-label="Team">
+							<label><input type="radio" name="team" value="" checked/><span>Any</span></label>
+							<label><input type="radio" name="team" value="1"/><span>1</span></label>
+							<label><input type="radio" name="team" value="2"/><span>2</span></label>
+						</div>
+					</div>
+					<div class="ctlRow">
+						<label for="killTimeMin">Kill time</label>
+						<input id="killTimeMin" name="killTimeMin" type="number" value="" min="0" max="1800" placeholder="min"/>
+						<span>to</span>
+						<input name="killTimeMax" type="number" value="" min="0" max="1800" placeholder="max" aria-label="Kill time max"/>
+						<span>s</span>
+					</div>
+					<small class="hint">First <i>spawns</i> actually occur at around 40 second mark, offset filters accordingly.</small>
+					@vehicleFilter("Killer", "killer", battleRatingMax)
+					@vehicleFilter("Victim", "victim", battleRatingMax)
+				</section>
+				<small class="hint">
+					Data filters miss the cache, so a load with filters takes longer.
+					<br/>
+					Drag to pan, scroll to zoom, double click to reset the view.
+				</small>
+				<button type="submit" id="settingsSubmitBtn"><span id="settingsSubmitBtnText">Load</span></button>
 			</form>
 		</div>
-		<div class="areastats">
-			<p>
+		<div id="areaPanel" class="areastats" popover>
+			<div class="areaHead">
 				<button type="button" id="areaSelectBtn">Select area</button>
-				<br/>
-				<small>
-					Press "Select area", then drag a box on the map to get the kills and deaths
-					of every vehicle in it. The filters above apply to the box as well.
-				</small>
-			</p>
+				<button type="button" id="areaClearBtn" disabled>Clear area</button>
+			</div>
+			<small class="hint">
+				Drag a box on the map to get the kills and deaths of every vehicle in it.
+				The data filters apply to the box as well.
+			</small>
 			<div id="areaStatsResults"></div>
 		</div>
 	</div>
 	<script type="module" src={ StaticAssets.URL("main.js") }></script>
 }
 
-templ vehicleClassSelector(name string) {
-	<select name={ name }>
-		<option selected></option>
-		<option value="exp_heavy_tank">heavy_tank</option>
-		<option value="exp_SPAA">SPAA</option>
-		<option value="exp_tank">tank (light+medium)</option>
-		<option value="exp_tank_destroyer">tank_destroyer</option>
-	</select>
+templ vehicleFilter(title, prefix string, battleRatingMax int) {
+	<fieldset class="vehicleFilter">
+		<legend>{ title } vehicle</legend>
+		@brSelector(prefix+"BattleRatingMin", "BR min", battleRatingMax)
+		@brSelector(prefix+"BattleRatingMax", "BR max", battleRatingMax)
+		<select name={ prefix + "VehicleClass" } aria-label={ title + " class" }>
+			<option value="" selected>Any class</option>
+			<option value="exp_heavy_tank">Heavy tank</option>
+			<option value="exp_SPAA">SPAA</option>
+			<option value="exp_tank">Tank (light, medium)</option>
+			<option value="exp_tank_destroyer">Tank destroyer</option>
+		</select>
+		<select name={ prefix + "VehicleCountry" } aria-label={ title + " country" }>
+			<option value="" selected>Any country</option>
+			<option value="country_britain">Britain</option>
+			<option value="country_china">China</option>
+			<option value="country_france">France</option>
+			<option value="country_germany">Germany</option>
+			<option value="country_israel">Israel</option>
+			<option value="country_italy">Italy</option>
+			<option value="country_japan">Japan</option>
+			<option value="country_sweden">Sweden</option>
+			<option value="country_usa">USA</option>
+			<option value="country_ussr">USSR</option>
+		</select>
+	</fieldset>
 }
 
-templ vehicleCountrySelector(name string) {
-	<select name={ name }>
-		<option selected></option>
-		<option value="country_britain">britain</option>
-		<option value="country_china">china</option>
-		<option value="country_france">france</option>
-		<option value="country_germany">germany</option>
-		<option value="country_israel">israel</option>
-		<option value="country_italy">italy</option>
-		<option value="country_japan">japan</option>
-		<option value="country_sweden">sweden</option>
-		<option value="country_usa">usa</option>
-		<option value="country_ussr">ussr</option>
-	</select>
-}
-
-templ brSelector(name string, battleRatingMax int) {
-	<select name={ name }>
-		<option selected></option>
+templ brSelector(name, empty string, battleRatingMax int) {
+	<select name={ name } aria-label={ empty }>
+		<option value="" selected>{ empty }</option>
 		for i := range battleRatingMax+1 {
 			<option value={ i }>{ BRString(i) }</option>
 		}
@@ -297,7 +281,14 @@ templ AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit
 		}
 	</p>
 	if len(stats) > 0 {
-		<table>
+		<table class="areaTable">
+			<colgroup>
+				<col/>
+				<col class="num"/>
+				<col class="num"/>
+				<col class="num"/>
+				<col class="num"/>
+			</colgroup>
 			<thead>
 				<tr>
 					<th>Vehicle</th>
@@ -311,7 +302,12 @@ templ AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit
 				for _, v := range stats {
 					<tr>
 						<td>
-							@VehicleLabel(v.Vehicle)
+							<div class="vehicleCell">
+								@vehicleSlotIcon(v.Vehicle)
+								<span class="marquee"><span>
+									@vehicleName(v.Vehicle)
+								</span></span>
+							</div>
 						</td>
 						<td>{ v.Kills }</td>
 						<td>{ v.Deaths }</td>
@@ -325,10 +321,15 @@ templ AreaStats(stats []AreaVehicleStat, widthMeters, heightMeters, total, limit
 }
 
 templ VehicleLabel(v Vehicle) {
+	@vehicleSlotIcon(v)
+	@vehicleName(v)
+}
+
+templ vehicleSlotIcon(v Vehicle) {
 	<img class="vehicleIcon" src={ "https://static.encyclopedia.warthunder.com/slots/" + v.ID + ".png" } alt="" loading="lazy" onerror="this.remove()"/>
-	if v.IsPremium {
-		<img class="vehicleIcon" src="https://static.encyclopedia.warthunder.com/gui_skin/item_type_talisman.svg" alt="" loading="lazy" onerror="this.remove()"/>
-	}
+}
+
+templ vehicleName(v Vehicle) {
 	<a href={ "https://wiki.warthunder.com/unit/" + v.ID } target="_blank">
 		if v.IsEvent {
 			<i>{ v.ID } </i>
@@ -336,6 +337,9 @@ templ VehicleLabel(v Vehicle) {
 			{ v.ID }
 		}
 	</a>
+	if v.IsPremium {
+		<img class="vehicleIcon premiumIcon" src="https://static.encyclopedia.warthunder.com/gui_skin/item_type_talisman.svg" alt="" loading="lazy" onerror="this.remove()"/>
+	}
 }
 
 type StatsTable struct {

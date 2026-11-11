@@ -17,49 +17,16 @@ body {
 	font-size: large;
 }
 
-/* --mapsize is the biggest square the map can be when the page height limits
-   it, --mapw the width the map really gets in the layout below */
-.content {
-	--mapsize: calc(100vh - 2rem - 4rem);
-	--mapw: 100%;
-	display: grid;
-	grid-template-areas: "map" "settings" "area";
-	align-items: start;
-	padding: 1rem;
-	gap: 1rem;
-}
-
-.content > div.map {
-	grid-area: map;
-	position: relative;
-	container-type: size;
-	box-sizing: border-box;
-	width: var(--mapw);
-	max-width: var(--mapsize);
-	aspect-ratio: 1 / 1;
-	border: 1px solid white;
-}
-
-/* an inline svg leaves a baseline gap under itself, which makes the map taller
-   than it is wide */
-.content > div.map > svg {
-	display: block;
-}
-
 .content > div.settings {
-	grid-area: settings;
 	border-radius: 0.8rem;
 	border: 1px solid #555;
-	padding: 0.5em;
+	padding: 0.8rem;
 }
 
 .content > div.areastats {
-	grid-area: area;
-	min-width: 0;
-	overflow: auto;
 	border-radius: 0.8rem;
 	border: 1px solid #555;
-	padding: 0.5em;
+	padding: 0.8rem;
 }
 
 .loadingNote {
@@ -118,36 +85,84 @@ body {
 	font-size: min(2.5rem, 7cqw);
 }
 
-/* the map and the settings share the top row, the table goes under both */
-@media (min-aspect-ratio: 3/4) and (width >= 970px) {
-	.content {
-		--mapw: min(var(--mapsize), 55vw);
-		grid-template-areas: "map settings" "area area";
-		grid-template-columns: auto 1fr;
-	}
+/* one screen pixel wide at every zoom */
+#mapviewLines line {
+	stroke-width: 1px;
+	vector-effect: non-scaling-stroke;
+}
 
-	.content > div.settings {
-		max-height: calc(var(--mapw) - 1rem);
-		overflow-y: auto;
+.areaTable {
+	width: 100%;
+	table-layout: fixed;
+	border-collapse: collapse;
+	font-variant-numeric: tabular-nums;
+}
+
+.areaTable col.num {
+	width: 4em;
+}
+
+.areaTable th,
+.areaTable td {
+	padding: 0.15em 0.25em;
+	white-space: nowrap;
+	text-align: right;
+}
+
+.areaTable th:first-child,
+.areaTable td:first-child {
+	text-align: left;
+}
+
+.areaTable tbody tr:hover {
+	background-color: #fff1;
+}
+
+.vehicleCell {
+	display: flex;
+	align-items: center;
+}
+
+.vehicleCell > .marquee {
+	flex: 1;
+	min-width: 0;
+}
+
+/* a name that is wider than its cell moves to its end and back. The move is
+   the cell width minus the name width, and zero when the name fits.
+   A transform animation moves the text in fractions of a pixel on the GPU,
+   which blurs it. The animation moves a custom property, and the transform
+   rounds it to whole pixels. */
+@property --marquee-x {
+	syntax: "<length-percentage>";
+	inherits: false;
+	initial-value: 0px;
+}
+
+.marquee {
+	display: block;
+	overflow: hidden;
+	container-type: inline-size;
+}
+
+.marquee > span {
+	display: inline-block;
+	transform: translateX(round(var(--marquee-x), 1px));
+	animation: marquee 9s ease-in-out infinite alternate;
+}
+
+@keyframes marquee {
+	0%, 20% {
+		--marquee-x: 0px;
+	}
+	80%, 100% {
+		--marquee-x: min(0px, 100cqw - 100%);
 	}
 }
 
-/* the map takes the height of the page, the settings and the table stack beside it */
-@media (min-aspect-ratio: 4/3) and (width >= 970px) {
-	.content {
-		--mapw: var(--mapsize);
-		grid-template-areas: "map settings" "map area";
-		grid-template-rows: minmax(0, 1fr) minmax(0, auto);
-		height: var(--mapsize);
-	}
-
-	.content > div.settings {
-		align-self: stretch;
-		min-height: 0;
-	}
-
-	.content > div.areastats {
-		max-height: calc(var(--mapsize) / 2);
+@media (prefers-reduced-motion: reduce) {
+	.marquee > span {
+		animation: none;
 	}
 }
 
@@ -157,35 +172,267 @@ body {
 	margin-right: 0.4em;
 }
 
+.premiumIcon {
+	margin-right: 0;
+	margin-left: 0.4em;
+}
+
 select,
 button,
 input {
-	background-color: #111;
-	border-radius: 0.5rem;
-	border: 1px solid #555;
-	padding: 0.25rem 0.25rem 0.25rem 0.25rem;
+	box-sizing: border-box;
+	background-color: #1a1a1a;
+	border-radius: 0.45rem;
+	border: 1px solid #444;
+	padding: 0.35rem 0.6rem;
 	color: #ddd;
 	font: inherit;
 }
 
-#levelSelector {
-	background-color: #111;
-	border: 1px solid #ddd;
-	border-radius: 5px;
-	padding: 1em;
-	color: #ddd;
-	height: 90%;
-	overflow-y: scroll;
+button:not(:disabled) {
+	cursor: pointer;
 }
 
-/* the search box of the map selector stays above the list while it scrolls */
-#levelSelectorSearch {
-	width: 100%;
-	box-sizing: border-box;
-	margin-bottom: 0.5rem;
+button:hover:not(:disabled),
+select:hover {
+	background-color: #242424;
+	border-color: #666;
+}
+
+button:disabled {
+	opacity: 0.4;
+}
+
+#areaSelectBtn.active {
+	background-color: #ddd;
+	border-color: #ddd;
+	color: #111;
+	font-weight: bold;
+}
+
+:is(select, button, input):focus-visible {
+	outline: 2px solid #8ab4ff;
+	outline-offset: 1px;
+}
+
+select {
+	appearance: none;
+	padding-right: 1.7rem;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23aaa' stroke-width='1.5'/%3E%3C/svg%3E");
+	background-repeat: no-repeat;
+	background-position: right 0.55rem center;
+	background-size: 0.65rem;
+}
+
+input[type="number"] {
+	width: 3.8rem;
+	appearance: textfield;
+	-moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
+}
+
+input[type="range"] {
+	flex: 1;
+	min-width: 6rem;
+	padding: 0;
+	border: 0;
+	background: none;
+	accent-color: #ddd;
+}
+
+input::placeholder {
+	color: #777;
+}
+
+#settingsSubmitBtn {
 	position: sticky;
-	top: 0;
-	z-index: 1;
+	bottom: 0;
+	font-size: larger;
+	font-weight: bold;
+}
+
+/* the form has changes that are not loaded */
+#settingsSubmitBtn.pending {
+	background-color: #ddd;
+	border-color: #ddd;
+	color: #111;
+}
+
+.hint {
+	display: block;
+	color: #999;
+	line-height: 1.4;
+}
+
+/* the settings form: groups with a small heading, rows of a label and its
+   inputs */
+.controls {
+	display: flex;
+	flex-direction: column;
+	gap: 1.1rem;
+	padding: 0.3rem;
+}
+
+.ctlGroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0.55rem;
+}
+
+.ctlGroup > h3 {
+	margin: 0;
+	padding-bottom: 0.3rem;
+	border-bottom: 1px solid #333;
+	color: #999;
+	font-size: 0.75rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+}
+
+.ctlRow {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.ctlRow > label:first-child,
+.ctlRow > .ctlLabel {
+	min-width: 5.5rem;
+	color: #bbb;
+}
+
+.iconBtn {
+	padding: 0.35rem 0.55rem;
+	line-height: 1;
+}
+
+.segmented {
+	display: inline-flex;
+	border: 1px solid #444;
+	border-radius: 0.45rem;
+	overflow: hidden;
+}
+
+.segmented input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.segmented span {
+	display: block;
+	padding: 0.35rem 0.8rem;
+	cursor: pointer;
+}
+
+.segmented label + label span {
+	border-left: 1px solid #444;
+}
+
+.segmented span:hover {
+	background-color: #242424;
+}
+
+.segmented input:checked + span {
+	background-color: #ddd;
+	color: #111;
+	font-weight: bold;
+}
+
+.segmented input:focus-visible + span {
+	outline: 2px solid #8ab4ff;
+	outline-offset: -2px;
+}
+
+.vehicleFilter {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.4rem;
+	margin: 0;
+	padding: 0.5rem 0.6rem 0.6rem;
+	border: 1px solid #333;
+	border-radius: 0.6rem;
+}
+
+.vehicleFilter > legend {
+	padding: 0 0.3rem;
+	color: #bbb;
+}
+
+.vehicleFilter > select {
+	width: 100%;
+	min-width: 0;
+}
+
+/* map picker: a search box, and the ranked list in a popover under it */
+#mapSearch {
+	width: 100%;
+}
+
+.mapList {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	padding: 0.3rem;
+	overflow-y: auto;
+	background-color: #161616;
+	border: 1px solid #555;
+	border-radius: 0.6rem;
+	box-shadow: 0 0.5rem 1.5rem #000c;
+	color: #ddd;
+}
+
+.mapList > button {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	width: 100%;
+	padding: 0.3rem 0.4rem;
+	border: 0;
+	background: none;
+	text-align: left;
+}
+
+.mapList > button[hidden] {
+	display: none;
+}
+
+.mapList > button > img {
+	flex: none;
+	border-radius: 0.25rem;
+	background-color: #222;
+}
+
+.mapList > button > span {
+	flex: 1;
+}
+
+.mapList > button > small {
+	color: #888;
+	font-variant-numeric: tabular-nums;
+}
+
+.mapList > button.active,
+.mapList > button:hover {
+	background-color: #2a2a2a;
+}
+
+/* area stats: the two buttons on one row, the hint under them */
+.areaHead {
+	display: flex;
+	gap: 0.5rem;
+	margin-bottom: 0.4rem;
+}
+
+#areaStatsResults > p {
+	margin: 0.7rem 0;
 }
 
 .statBarGreen {
@@ -210,4 +457,232 @@ a {
 a:visited {
 	color: #ddd;
 	/*text-decoration: none;*/
+}
+
+/* canvas layout: the map fills the page, and the header and the two panels
+   float over it */
+body:has(.content) {
+	height: 100vh;
+	overflow: hidden;
+}
+
+body:has(.content) .header {
+	position: fixed;
+	top: 0.75rem;
+	left: 0.75rem;
+	z-index: 3;
+	width: 25rem;
+	box-sizing: border-box;
+	padding: 0.5rem 0.75rem;
+	font-size: medium;
+	background-color: #111e;
+	border: 1px solid #555;
+	border-radius: 0.8rem;
+}
+
+body:has(.content) .header .title {
+	display: block;
+	margin-bottom: 0.25rem;
+}
+
+body:has(.content) .header > span:last-child {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.75rem;
+}
+
+.content > div.map {
+	position: fixed;
+	inset: 0;
+}
+
+/* an inline svg leaves a baseline gap under itself. Touch drags pan and zoom
+   the map, not the page. */
+.content > div.map > svg {
+	display: block;
+	touch-action: none;
+}
+
+/* the panels are popovers for the small screen layout, so the popover
+   defaults of the browser are reset */
+.content > div.settings,
+.content > div.areastats {
+	position: fixed;
+	z-index: 2;
+	inset: auto;
+	margin: 0;
+	box-sizing: border-box;
+	overflow-y: auto;
+	color: inherit;
+	background-color: #111e;
+}
+
+.panelToggles {
+	display: none;
+}
+
+.content > div.settings {
+	top: 5.5rem;
+	left: 0.75rem;
+	width: 25rem;
+	max-height: calc(100vh - 6.25rem);
+}
+
+.content > div.areastats {
+	top: 0.75rem;
+	right: 0.75rem;
+	width: 34rem;
+	max-height: calc(100vh - 1.5rem);
+}
+
+.content .loadingIndicators {
+	top: 0.75rem;
+	left: 50%;
+	right: auto;
+	transform: translateX(-50%);
+	border-radius: 0.3em;
+}
+
+@media (width >= 62rem) {
+	.content > div.settings,
+	.content > div.areastats {
+		display: block;
+	}
+}
+
+/* small screens: the header on top, and each panel is a sheet from the
+   bottom that a button opens */
+@media (width < 62rem) {
+	body:has(.content) .header {
+		right: 0.75rem;
+		width: auto;
+		font-size: small;
+	}
+
+	body:has(.content) .header > span:last-child {
+		top: 0.4rem;
+	}
+
+	.content > div.settings,
+	.content > div.areastats {
+		inset: auto 0 0;
+		width: auto;
+		max-height: 75vh;
+		border-bottom: 0;
+		border-radius: 0.8rem 0.8rem 0 0;
+		background-color: #111;
+	}
+
+	.panelToggles {
+		position: fixed;
+		bottom: 1rem;
+		left: 50%;
+		z-index: 1;
+		display: flex;
+		gap: 0.5rem;
+		transform: translateX(-50%);
+	}
+
+	.panelToggles > button {
+		padding: 0.6rem 1.2rem;
+		background-color: #111e;
+		border-color: #666;
+	}
+
+	.content .loadingIndicators {
+		top: auto;
+		bottom: 4.5rem;
+	}
+}
+
+/* the exposure and brightness help, a card in the middle of the page */
+.infoBox {
+	box-sizing: border-box;
+	width: min(32rem, calc(100vw - 2rem));
+	padding: 1.1rem 1.3rem 1.3rem;
+	background-color: #161616;
+	color: #ddd;
+	border: 1px solid #444;
+	border-radius: 0.9rem;
+	box-shadow: 0 1rem 3rem #000c;
+	line-height: 1.5;
+	transition: opacity 140ms ease-out, transform 140ms ease-out, display 140ms allow-discrete, overlay 140ms allow-discrete;
+}
+
+@starting-style {
+	.infoBox:popover-open {
+		opacity: 0;
+		transform: translateY(0.5rem);
+	}
+}
+
+.infoBox::backdrop {
+	background-color: #0009;
+}
+
+.infoHead {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+	margin-bottom: 0.6rem;
+	padding-bottom: 0.6rem;
+	border-bottom: 1px solid #333;
+}
+
+.infoHead > h3 {
+	margin: 0;
+	font-size: 1.05rem;
+}
+
+.infoBox p {
+	margin: 0 0 0.9rem;
+	color: #bbb;
+}
+
+.infoBox dl {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: 0.5rem 1rem;
+	margin: 0 0 1rem;
+}
+
+.infoBox dt {
+	font-weight: bold;
+}
+
+.infoBox dd {
+	margin: 0;
+	color: #bbb;
+}
+
+.infoExamples {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 0.6rem;
+}
+
+.infoExamples > div {
+	display: flex;
+	flex-direction: column;
+	gap: 0.3rem;
+	padding: 0.6rem 0.7rem;
+	background-color: #1f1f1f;
+	border: 1px solid #333;
+	border-radius: 0.6rem;
+}
+
+.infoExamples b {
+	font-variant-numeric: tabular-nums;
+}
+
+.infoExamples span {
+	color: #aaa;
+	font-size: 0.9rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.infoBox {
+		transition: none;
+	}
 }
