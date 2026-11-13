@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"image/color"
 	"main/frontend"
+	"main/lib/killstorage-duckdb"
 	"main/lib/staticassets"
 	"math"
 	"net/http"
@@ -45,6 +47,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /data/areastats", httpLog(compRenderFn(serveAreaStats)))
 	mux.HandleFunc("GET /api/v1/region", httpLog(serveRegion))
 	mux.HandleFunc("GET /api/v1/ingestPreferences", httpLog(serveIngestPreferences))
+	mux.HandleFunc("GET /api/v1/posStat", httpLog(servePosStat))
 
 	mux.HandleFunc("GET /debug/duckdbmemory", httpLog(serveDebugDuckdbMemory))
 	mux.HandleFunc("GET /debug/wpcost", httpLog(serveDebugWpcost))
@@ -240,13 +243,108 @@ func serveAreaStats(w http.ResponseWriter, r *http.Request) templ.Component {
 	return frontend.AreaStats(rows, int(math.Round(math.Abs(x1-x0))), int(math.Round(math.Abs(z1-z0))), total, areaStatsLimit)
 }
 
+func servePosStat(w http.ResponseWriter, r *http.Request) {
+	if !apiAuthorizedFor(w, r, "pos") {
+		return
+	}
+	q := r.URL.Query()
+	level := q.Get("level")
+	kq := buildKillQuery(q, level)
+	if kq == nil {
+		w.WriteHeader(204)
+		return
+	}
+
+	x, z := urlValueInt(q, "x"), urlValueInt(q, "z")
+	if x == nil || z == nil {
+		w.WriteHeader(400)
+		w.Write([]byte("coord is incorrect\n"))
+		return
+	}
+
+	perf := time.Now()
+
+	tallyTotalKills := 0
+	tallyTotalDeaths := 0
+	err := cachedHeat.Access(level, func(cha *cachedHeatAggregate) (*cachedHeatAggregate, error) {
+		if cha == nil {
+			var err error
+			cha, err = cachedHeatInitAggregate(context.Background(), level)
+			if err != nil {
+				return nil, err
+			}
+		}
+		foundRows := 0
+		for _, row := range cha.tally {
+			cx := int(row.x)
+			if cx != *x && cx != *x-1 && cx != *x+1 {
+				continue
+			}
+			foundRows++
+			foundVals := 0
+			for _, v := range row.row {
+				cz := int(v.z)
+				if cz != *z && cz != *z-1 && cz != *z+1 {
+					continue
+				}
+				foundVals++
+				tallyTotalKills += int(v.kills)
+				tallyTotalDeaths += int(v.deaths)
+				if foundVals == 3 {
+					break
+				}
+			}
+			if foundRows == 3 {
+				break
+			}
+		}
+		return cha, nil
+	})
+	if err != nil {
+		w.WriteHeader(500)
+		log.Err(err).Msg("cached heat pos stat")
+		return
+	}
+	log.Info().Str("perf", time.Since(perf).Round(time.Millisecond).String()).Msg("prof tally from cache")
+
+	anglesKills, err := ks.GetPosAnglesToKills(r.Context(), kq, *x, *z)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Err(err).Msg("GetPosAnglesToKills")
+		return
+	}
+	log.Info().Str("perf", time.Since(perf).Round(time.Millisecond).String()).Msg("prof angles to kills")
+
+	anglesDeaths, err := ks.GetPosAnglesDeathsFrom(r.Context(), kq, *x, *z)
+	if err != nil {
+		w.WriteHeader(500)
+		log.Err(err).Msg("GetPosAnglesDeathsFrom")
+		return
+	}
+	log.Info().Str("perf", time.Since(perf).Round(time.Millisecond).String()).Msg("prof angles deaths from")
+
+	w.WriteHeader(200)
+	err = json.NewEncoder(w).Encode(map[string]any{
+		"tally": map[string]any{
+			"kills":  tallyTotalKills,
+			"deaths": tallyTotalDeaths,
+		},
+		"angles": map[string]any{
+			"toKills":    killstorage.AngleCountTallySlice(anglesKills),
+			"deathsFrom": killstorage.AngleCountTallySlice(anglesDeaths),
+		},
+	})
+	if err != nil {
+		log.Err(err).Msg("json encode")
+	}
+}
+
 type RegionVehicleStat struct {
 	Vehicle string `json:"vehicle"`
 	Kills   int    `json:"kills"`
 	Deaths  int    `json:"deaths"`
 }
 
-// serveRegion answers the same question as serveAreaStats, in JSON.
 func serveRegion(w http.ResponseWriter, r *http.Request) {
 	if !apiAuthorizedFor(w, r, "region") {
 		return

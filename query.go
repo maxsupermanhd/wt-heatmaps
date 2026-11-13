@@ -39,7 +39,7 @@ func isDefaultQuery(vals url.Values) bool {
 
 func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
 	kq := &killstorage.QueryConditions{}
-	if !ks.QueryWithLevel(kq, level) {
+	if !kq.QueryWithLevel(level) {
 		return nil
 	}
 	if val := urlValueInt(q, "team"); val != nil {
@@ -91,7 +91,7 @@ func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
 		for i := range killerVehicles {
 			killerVehicles[i] = "tankmodels/" + killerVehicles[i]
 		}
-		ks.QueryWithKillerVehicles(kq, killerVehicles)
+		kq.QueryWithKillerVehicles(killerVehicles)
 	}
 	victimVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax"))
 	if val := q.Get("victimVehicleClass"); val != "" {
@@ -132,7 +132,7 @@ func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
 		for i := range victimVehicles {
 			victimVehicles[i] = "tankmodels/" + victimVehicles[i]
 		}
-		ks.QueryWithVictimVehicles(kq, victimVehicles)
+		kq.QueryWithVictimVehicles(victimVehicles)
 	}
 	return kq
 }

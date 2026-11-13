@@ -1,6 +1,7 @@
 package killstorage
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"errors"
@@ -23,19 +24,19 @@ type QueryConditions struct {
 	region        *image.Rectangle
 }
 
-func (s *KillsStorage) QueryWithLevel(q *QueryConditions, level string) bool {
+func (q *QueryConditions) QueryWithLevel(level string) bool {
 	q.whereArgs = append(q.whereArgs, level)
 	q.whereConds = append(q.whereConds, fmt.Sprintf("level = $%d", len(q.whereArgs)))
 	q.level = level
 	return true
 }
 
-func (s *KillsStorage) QueryWithKillerVehicles(q *QueryConditions, vehicles []string) {
+func (q *QueryConditions) QueryWithKillerVehicles(vehicles []string) {
 	q.whereArgs = append(q.whereArgs, vehicles)
 	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_vehicle = any($%d)", len(q.whereArgs)))
 }
 
-func (s *KillsStorage) QueryWithVictimVehicles(q *QueryConditions, vehicles []string) {
+func (q *QueryConditions) QueryWithVictimVehicles(vehicles []string) {
 	q.whereArgs = append(q.whereArgs, vehicles)
 	q.whereConds = append(q.whereConds, fmt.Sprintf("victim_vehicle = any($%d)", len(q.whereArgs)))
 }
@@ -255,6 +256,79 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions
 	return CollectRows(rows, func(row CollectableRow) (ret AreaArrow, err error) {
 		var d1 int
 		err = row.Scan(&ret.FromX, &ret.FromZ, &ret.ToX, &ret.ToZ, &d1)
+		return
+	})
+}
+
+type AngleCountTally struct {
+	Angle uint16
+	Count uint16
+}
+
+type AngleCountTallySlice []AngleCountTally
+
+func (a AngleCountTallySlice) MarshalJSON() ([]byte, error) {
+	ret := &bytes.Buffer{}
+	ret.WriteString("\"Angle,Count;")
+	for _, v := range a {
+		fmt.Fprintf(ret, "%d,%d;", v.Angle, v.Count)
+	}
+	ret.WriteString("\"")
+	return ret.Bytes(), nil
+}
+
+func (s *KillsStorage) GetPosAnglesToKills(ctx context.Context, conds *QueryConditions, posx, posz int) ([]AngleCountTally, error) {
+	q := `
+	select round(degrees(
+  ST_Azimuth(
+    ST_Point(round(killer_posx), round(killer_posz)),
+    ST_Point(round(victim_posx), round(victim_posz)))
+  )),
+  count(*)
+	from kills
+	where
+  level = $1
+  and
+  (round(killer_posx) = $2 or round(killer_posx) = $2+1 or round(killer_posx) = $2-1)
+  and
+  (round(killer_posz) = $3 or round(killer_posz) = $3+1 or round(killer_posz) = $3-1)
+	group by 1
+	order by 2 desc`
+	args := []any{conds.level, posx, posz}
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	return CollectRows(rows, func(row CollectableRow) (ret AngleCountTally, err error) {
+		err = row.Scan(&ret.Angle, &ret.Count)
+		return
+	})
+}
+
+func (s *KillsStorage) GetPosAnglesDeathsFrom(ctx context.Context, conds *QueryConditions, posx, posz int) ([]AngleCountTally, error) {
+	q := `
+	select round(degrees(
+  ST_Azimuth(
+    ST_Point(round(victim_posx), round(victim_posz)),
+    ST_Point(round(killer_posx), round(killer_posz)))
+  )),
+  count(*)
+	from kills
+	where
+  level = $1
+  and
+  (round(victim_posx) = $2 or round(victim_posx) = $2+1 or round(victim_posx) = $2-1)
+  and
+  (round(victim_posz) = $3 or round(victim_posz) = $3+1 or round(victim_posz) = $3-1)
+	group by 1
+	order by 2 desc`
+	args := []any{conds.level, posx, posz}
+	rows, err := s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	return CollectRows(rows, func(row CollectableRow) (ret AngleCountTally, err error) {
+		err = row.Scan(&ret.Angle, &ret.Count)
 		return
 	})
 }

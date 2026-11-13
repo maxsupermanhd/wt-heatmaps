@@ -52,6 +52,14 @@ func initDb(dbpath string) (*duckdb.Connector, *sql.DB, error) {
 	if err != nil {
 		return nil, nil, err
 	}
+	_, err = db.ExecContext(context.Background(), `install spatial;`)
+	if err != nil {
+		return nil, nil, err
+	}
+	_, err = db.ExecContext(context.Background(), `load spatial;`)
+	if err != nil {
+		return nil, nil, err
+	}
 	return dbConnector, db, nil
 }
 
