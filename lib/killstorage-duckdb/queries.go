@@ -361,6 +361,8 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 		targetCoords[i] = []int32{int32(targetGroup[i].X), int32(targetGroup[i].Y)}
 	}
 
+	qKillerCond, _ := conds.SeparatedConds()
+
 	q := `SELECT
 	  ROUND(k.killer_posx)::int AS killer_x,
 	  ROUND(k.killer_posz)::int AS killer_z,
@@ -368,7 +370,7 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 	  ROUND(k.victim_posz)::int AS victim_z,
 	  COUNT(k) AS count
 	FROM kills k
-	WHERE level = $1 AND
+	` + conds.WhereCase() + qKillerCond + ` and
 	NOT (k.victim_posx BETWEEN $2 AND $3 AND k.victim_posz BETWEEN $4 AND $5) AND
 	  (ROUND(k.killer_posx)::int, ROUND(k.killer_posz)::int) IN (
 			SELECT a['unnest'][1], a['unnest'][2] FROM UNNEST($6::int[][]) a)
@@ -376,7 +378,7 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 	ORDER BY count DESC
 	LIMIT 10`
 	areaArgs := conds["areaRectangle"].Args
-	args := []any{conds["level"].Args[0], areaArgs[0], areaArgs[1], areaArgs[2], areaArgs[3], targetCoords}
+	args := append(conds.Args(), areaArgs[0], areaArgs[1], areaArgs[2], areaArgs[3], targetCoords)
 	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
