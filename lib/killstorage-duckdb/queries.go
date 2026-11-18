@@ -146,6 +146,17 @@ func (q QueryConditions) QueryWithAreaCircle(x, z, r float64) {
 	}
 }
 
+func (q QueryConditions) QueryWithDirectWeapon() {
+	q["weaponNotEmpty"] = &QueryCondition{
+		Cond: "weapon <> ''",
+		Args: []any{},
+	}
+	q["weaponNotArty"] = &QueryCondition{
+		Cond: "weapon <> 'artillery'",
+		Args: []any{},
+	}
+}
+
 func (q QueryConditions) QueryWithArbitrary(name, cond string, args ...any) {
 	q[name] = &QueryCondition{
 		Cond: cond,

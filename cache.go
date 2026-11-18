@@ -107,6 +107,7 @@ func cachedHeatGetDataPointsPerLevel() map[string]int {
 func cachedHeatInitAggregate(ctx context.Context, k string) (*cachedHeatAggregate, error) {
 	a := &cachedHeatAggregate{}
 	kq := killstorage.QueryConditions{}
+	kq.QueryWithDirectWeapon()
 	kq.QueryWithLevel(k)
 	t, err := ks.GetKillCountsByCoord(ctx, kq)
 	if err != nil {

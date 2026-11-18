@@ -54,6 +54,7 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 	if len(kq) == 0 {
 		return nil
 	}
+	kq.QueryWithDirectWeapon()
 	if val := urlValueInt(q, "team"); val != nil {
 		kq.QueryWithTeam(*val)
 	}
