@@ -15,6 +15,7 @@ type WpcostVehicle struct {
 	Event                  string `json:"event"`
 	Country                string `json:"country"`
 	UnitClass              string `json:"unitClass"`
+	SpawnType              string `json:"spawnType"`
 }
 
 func (v WpcostVehicle) IsPremium() bool {

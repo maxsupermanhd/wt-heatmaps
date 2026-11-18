@@ -21,12 +21,13 @@ import (
 
 func serveHeat(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
-	level := q.Get("level")
-	if level == "" {
-		w.WriteHeader(204)
+	kq := buildKillQuery(q)
+	if kq == nil {
+		w.WriteHeader(400)
 		return
 	}
 
+	level := q.Get("level")
 	levelOffsets, err := getLevelOffsets(level)
 	if err != nil {
 		log.Err(err).Msg("get level offsets")
@@ -54,11 +55,6 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 			return a, nil
 		})
 	} else {
-		kq := buildKillQuery(q, level)
-		if kq == nil {
-			w.WriteHeader(204)
-			return
-		}
 		// log.Info().Msg(kq.Dump())
 		a, err := ks.GetKillCountsByCoord(r.Context(), kq)
 		if err != nil {

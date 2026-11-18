@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"maps"
 	"slices"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -15,81 +17,220 @@ import (
 	"github.com/davecgh/go-spew/spew"
 )
 
-type QueryConditions struct {
-	whereConds    []string
-	whereArgs     []any
-	level         string
-	hasTeamFilter bool
-	teamFilter    int
-	region        *image.Rectangle
+type QueryCondition struct {
+	Cond      string
+	Args      []any
+	Arbitrary any
 }
 
-func (q *QueryConditions) QueryWithLevel(level string) bool {
-	q.whereArgs = append(q.whereArgs, level)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("level = $%d", len(q.whereArgs)))
-	q.level = level
+type QueryConditions map[string]*QueryCondition
+
+func (q QueryConditions) Clone() QueryConditions {
+	return maps.Clone(q)
+}
+
+func (q QueryConditions) Has(k string) bool {
+	_, ok := q[k]
+	return ok
+}
+
+func (q QueryConditions) HasAll(k ...string) bool {
+	for _, k2 := range k {
+		_, have := q[k2]
+		if !have {
+			return false
+		}
+	}
 	return true
 }
 
-func (q *QueryConditions) QueryWithKillerVehicles(vehicles []string) {
-	q.whereArgs = append(q.whereArgs, vehicles)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("killer_vehicle = any($%d)", len(q.whereArgs)))
+func (q QueryConditions) HasAny(k ...string) bool {
+	for _, k2 := range k {
+		_, have := q[k2]
+		if have {
+			return true
+		}
+	}
+	return false
 }
 
-func (q *QueryConditions) QueryWithVictimVehicles(vehicles []string) {
-	q.whereArgs = append(q.whereArgs, vehicles)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("victim_vehicle = any($%d)", len(q.whereArgs)))
+func (q QueryConditions) QueryWithLevel(level string) {
+	q["level"] = &QueryCondition{
+		Cond: "level = ?",
+		Args: []any{level},
+	}
 }
 
-func (q *QueryConditions) QueryWithSessionTimeMin(tsFrom time.Time) {
-	q.whereArgs = append(q.whereArgs, tsFrom)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("session_time >= $%d", len(q.whereArgs)))
+func (q QueryConditions) QueryWithMission(mission string) {
+	q["mission"] = &QueryCondition{
+		Cond: "mission = ?",
+		Args: []any{mission},
+	}
 }
 
-func (q *QueryConditions) QueryWithSessionTimeMax(tsTo time.Time) {
-	q.whereArgs = append(q.whereArgs, tsTo)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("session_time < $%d", len(q.whereArgs)))
+func (q QueryConditions) QueryWithKillerVehicles(vehicles []string) {
+	q["killer_vehicle"] = &QueryCondition{
+		Cond: "killer_vehicle in ?",
+		Args: []any{vehicles},
+	}
 }
 
-func (q *QueryConditions) QueryWithTeam(team int) {
-	q.hasTeamFilter = true
-	q.teamFilter = team
+func (q QueryConditions) QueryWithVictimVehicles(vehicles []string) {
+	q["victim_vehicle"] = &QueryCondition{
+		Cond: "victim_vehicle in ?",
+		Args: []any{vehicles},
+	}
 }
 
-func (q *QueryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
-	q.whereArgs = append(q.whereArgs, killTimeMin.Milliseconds())
-	q.whereConds = append(q.whereConds, fmt.Sprintf("kill_time >= $%d", len(q.whereArgs)))
+func (q QueryConditions) QueryWithSessionTimeMin(tsFrom time.Time) {
+	q["session_time"] = &QueryCondition{
+		Cond: "session_time >= ?",
+		Args: []any{tsFrom},
+	}
 }
 
-func (q *QueryConditions) QueryWithKillTimeMax(killTimeMax time.Duration) {
-	q.whereArgs = append(q.whereArgs, killTimeMax.Milliseconds())
-	q.whereConds = append(q.whereConds, fmt.Sprintf("kill_time <= $%d", len(q.whereArgs)))
+func (q QueryConditions) QueryWithSessionTimeMax(tsTo time.Time) {
+	q["session_time"] = &QueryCondition{
+		Cond: "session_time < ?",
+		Args: []any{tsTo},
+	}
 }
 
-// QueryWithArea keeps the kills inside a box of world meters. The low edge
-// counts and the high edge does not, so two boxes that touch do not count a
-// kill on the line they share two times.
-func (q *QueryConditions) QueryWithArea(x0, z0, x1, z1 float64) {
-	q.whereArgs = append(q.whereArgs, min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1))
-	n := len(q.whereArgs)
-	q.whereConds = append(q.whereConds, fmt.Sprintf("p.x >= $%d AND p.x < $%d AND p.z >= $%d AND p.z < $%d", n-3, n-2, n-1, n))
-	rect := image.Rect(int(min(x0, x1)), int(min(z0, z1)), int(max(z0, z1)), int(max(x0, x1)))
-	q.region = &rect
+func (q QueryConditions) QueryWithTeam(team int) {
+	q["team"] = &QueryCondition{
+		Cond:      "",
+		Args:      []any{},
+		Arbitrary: team,
+	}
 }
 
-func (q *QueryConditions) QueryWithArbitrary(cond string) {
-	q.whereConds = append(q.whereConds, cond)
+func (q QueryConditions) QueryWithKillerTeam(team int) {
+	q["killer_team"] = &QueryCondition{
+		Cond: "killer_team = ?",
+		Args: []any{team},
+	}
 }
 
-func (q *QueryConditions) WhereCase() string {
-	if len(q.whereConds) == 0 {
+func (q QueryConditions) QueryWithVictimTeam(team int) {
+	q["victim_team"] = &QueryCondition{
+		Cond: "victim_team = ?",
+		Args: []any{team},
+	}
+}
+
+func (q QueryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
+	q["kill_time"] = &QueryCondition{
+		Cond: "kill_time >= ?",
+		Args: []any{int(killTimeMin.Milliseconds())},
+	}
+}
+
+func (q QueryConditions) QueryWithKillTimeMax(killTimeMax time.Duration) {
+	q["kill_time"] = &QueryCondition{
+		Cond: "kill_time <= ?",
+		Args: []any{int(killTimeMax.Milliseconds())},
+	}
+}
+
+func (q QueryConditions) QueryWithAreaRectangle(x0, z0, x1, z1 float64) {
+	q["areaRectangle"] = &QueryCondition{
+		Cond: "",
+		Args: []any{min(x0, x1), max(x0, x1), min(z0, z1), max(z0, z1)},
+	}
+}
+
+func (q QueryConditions) QueryWithAreaCircle(x, z, r float64) {
+	q["areaCircle"] = &QueryCondition{
+		Cond: "",
+		Args: []any{x, z, r},
+	}
+}
+
+func (q QueryConditions) QueryWithArbitrary(name, cond string, args ...any) {
+	q[name] = &QueryCondition{
+		Cond: cond,
+		Args: args,
+	}
+}
+
+func (q QueryConditions) WhereCase(only ...string) string {
+	if len(q) == 0 {
 		return ""
 	}
-	return "WHERE " + strings.Join(q.whereConds, " AND ")
+	t := []string{}
+	if len(only) == 0 {
+		for _, k := range slices.Sorted(maps.Keys(q)) {
+			c := q[k]
+			if c.Cond == "" {
+				continue
+			}
+			t = append(t, c.Cond)
+		}
+	} else {
+		for _, k := range only {
+			c, ok := q[k]
+			if !ok {
+				continue
+			}
+			if c.Cond == "" {
+				continue
+			}
+			t = append(t, c.Cond)
+		}
+	}
+	return "WHERE " + strings.Join(t, " AND ")
 }
 
-func (q *QueryConditions) Dump() string {
-	return q.WhereCase() + "\n" + spew.Sdump(q.whereArgs)
+func (q QueryConditions) Args(only ...string) []any {
+	if len(q) == 0 {
+		return []any{}
+	}
+	ret := []any{}
+	if len(only) == 0 {
+		for _, k := range slices.Sorted(maps.Keys(q)) {
+			c := q[k]
+			if c.Cond == "" {
+				continue
+			}
+			ret = append(ret, c.Args...)
+		}
+	} else {
+		for _, k := range only {
+			c, ok := q[k]
+			if !ok {
+				continue
+			}
+			if c.Cond == "" {
+				continue
+			}
+			ret = append(ret, c.Args...)
+		}
+	}
+	return ret
+}
+
+func (q QueryConditions) Dump() string {
+	return q.WhereCase() + " " + spew.Sdump(q)
+}
+
+func (q QueryConditions) SeparatedConds() (qKillerCond, qVictimCond string) {
+	if condTeam := q["team"]; condTeam != nil {
+		qKillerCond += ` and killer_team = ` + strconv.Itoa(condTeam.Arbitrary.(int)) + ` `
+		qVictimCond += ` and victim_team = ` + strconv.Itoa(condTeam.Arbitrary.(int)) + ` `
+	}
+	if condArea := q["areaRectangle"]; condArea != nil {
+		qKillerCond += fmt.Sprintf(` and round(killer_posx)::int between %v and %v and round(killer_posz)::int between %v and %v `,
+			condArea.Args[0], condArea.Args[1], condArea.Args[2], condArea.Args[3])
+		qVictimCond += fmt.Sprintf(` and round(victim_posx)::int between %v and %v and round(victim_posz)::int between %v and %v `,
+			condArea.Args[0], condArea.Args[1], condArea.Args[2], condArea.Args[3])
+	}
+	if condArea := q["areaCircle"]; condArea != nil {
+		qKillerCond += fmt.Sprintf(` and ST_Distance(ST_Point(%v, %v), ST_Point(killer_posx, killer_posz)) <= %v`,
+			condArea.Args[0], condArea.Args[1], condArea.Args[2])
+		qVictimCond += fmt.Sprintf(` and ST_Distance(ST_Point(%v, %v), ST_Point(victim_posx, victim_posz)) <= %v`,
+			condArea.Args[0], condArea.Args[1], condArea.Args[2])
+	}
+	return
 }
 
 type KillTally struct {
@@ -98,37 +239,38 @@ type KillTally struct {
 	Deaths uint32
 }
 
-func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds *QueryConditions) ([]KillTally, error) {
+func (s *KillsStorage) GetKillCountsByCoord(ctx context.Context, conds QueryConditions) ([]KillTally, error) {
 	if conds == nil {
 		return nil, errors.ErrUnsupported
 	}
-	qKillValue := "1"
-	qDeathValue := "1"
-	if conds.hasTeamFilter {
-		qKillValue = `CASE WHEN t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN 1 ELSE 0 END`
-		qDeathValue = `CASE WHEN t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN 1 ELSE 0 END`
+	if !conds.HasAny("level", "mission") {
+		return nil, errors.New("specify either level or mission")
 	}
-	q := `SELECT
-  (ROUND(p.x))::int AS x,
-  (ROUND(p.z))::int AS z,
-  SUM(p.iskill) AS kills,
-  SUM(p.isdeath) AS deaths
-FROM kills t
-CROSS JOIN LATERAL (
-  VALUES
-    (t.killer_posx, t.killer_posz, ` + qKillValue + `, 0),
-    (t.victim_posx, t.victim_posz, 0, ` + qDeathValue + `)
-) AS p(x, z, iskill, isdeath)
-` + conds.WhereCase() + `
-GROUP BY (ROUND(p.x))::int, (ROUND(p.z))::int;`
-	rows, err := s.db.QueryContext(ctx, q, conds.whereArgs...)
+	qKillerCond, qVictimCond := conds.SeparatedConds()
+	q := `
+with unpacked as (
+	select round(killer_posx)::int as px, round(killer_posz)::int as pz, 1 as iskill, 0 as isdeath
+	from kills
+	` + conds.WhereCase() + qKillerCond + `
+	union all
+	select round(victim_posx)::int as px, round(victim_posz)::int as pz, 0 as iskill, 1 as isdeath
+	from kills
+	` + conds.WhereCase() + qVictimCond + `
+)
+select px, pz, sum(iskill) as kills, sum(isdeath) as deaths
+from unpacked
+group by px, pz
+order by px, pz`
+	argsOnce := conds.Args()
+	args := append(argsOnce, argsOnce...)
+	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
 		}
 		return nil, err
 	}
-	// log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
 	return CollectRows(rows, func(row CollectableRow) (ret KillTally, err error) {
 		err = row.Scan(&ret.X, &ret.Z, &ret.Kills, &ret.Deaths)
 		return
@@ -141,38 +283,39 @@ type VehicleAreaStat struct {
 	Deaths  int
 }
 
-func (s *KillsStorage) GetVehicleStatsByArea(ctx context.Context, conds *QueryConditions, limit int) ([]VehicleAreaStat, error) {
+func (s *KillsStorage) GetVehicleStatsByArea(ctx context.Context, conds QueryConditions, limit int) ([]VehicleAreaStat, error) {
 	if conds == nil {
 		return nil, errors.ErrUnsupported
 	}
-	qKillValue := "+1"
-	qDeathValue := "-1"
-	if conds.hasTeamFilter {
-		qKillValue = `CASE WHEN t.killer_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN +1 ELSE 0 END`
-		qDeathValue = `CASE WHEN t.victim_team = ` + strconv.Itoa(conds.teamFilter) + ` THEN -1 ELSE 0 END`
+	if !conds.HasAny("level", "mission") {
+		return nil, errors.New("specify either level or mission")
 	}
-	q := `SELECT
-  p.vehicle,
-  COUNT(*) FILTER (WHERE p.delta > 0) AS kills,
-  COUNT(*) FILTER (WHERE p.delta < 0) AS deaths
-FROM (
-  SELECT points.*, p.* FROM (
-    SELECT t.*, t, {'vehicle': t.killer_vehicle, 'x': t.killer_posx, 'z': t.killer_posz, 'delta': ` + qKillValue + `} AS p FROM kills t
-    UNION ALL
-    SELECT t.*, t, {'vehicle': t.victim_vehicle, 'x': t.victim_posx, 'z': t.victim_posz, 'delta': ` + qDeathValue + `} AS p FROM kills t
-  ) points
-) points
-` + conds.WhereCase() + `
-GROUP BY p.vehicle
-ORDER BY COUNT(*) DESC`
+	qKillerCond, qVictimCond := conds.SeparatedConds()
+	q := `
+with unpacked as (
+	select killer_vehicle as vehicle, count(*) as kills, 0 as deaths
+	from kills
+	` + conds.WhereCase() + qKillerCond + `
+	group by vehicle
+	union all
+	select victim_vehicle as vehicle, 0 as kills, count(*) as deaths
+	from kills
+	` + conds.WhereCase() + qVictimCond + `
+	group by vehicle
+)
+select vehicle, sum(kills), sum(deaths)
+from unpacked
+group by vehicle`
 	if limit > 0 {
 		q += ` LIMIT ` + strconv.Itoa(limit) + `;`
 	}
-	rows, err := s.db.QueryContext(ctx, q, conds.whereArgs...)
+	argsOnce := conds.Args()
+	args := append(argsOnce, argsOnce...)
+	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
-	// log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
 	return CollectRows(rows, func(row CollectableRow) (ret VehicleAreaStat, err error) {
 		err = row.Scan(&ret.Vehicle, &ret.Kills, &ret.Deaths)
 		return
@@ -186,54 +329,38 @@ type AreaArrow struct {
 	ToZ   int
 }
 
-func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions) ([]AreaArrow, error) {
+func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions) ([]AreaArrow, error) {
 	if conds == nil {
 		return nil, errors.ErrUnsupported
 	}
-	if conds.region == nil {
-		return nil, errors.ErrUnsupported
+	if !conds.HasAny("level", "mission") {
+		return nil, errors.New("specify either level or mission")
 	}
-	q := `SELECT
-      ROUND(p.x)::int AS x,
-      ROUND(p.z)::int AS z,
-      SUM(p.delta) AS score,
-      COUNT(p) FILTER (WHERE p.delta <> 0) AS count
-    FROM (
-      SELECT points.*, p.* FROM (
-        SELECT k.*, k, {'x': k.killer_posx, 'z': k.killer_posz, 'delta': +1} AS p FROM kills k
-        UNION ALL
-        SELECT k.*, k, {'x': k.victim_posx, 'z': k.victim_posz, 'delta': -1} AS p FROM kills k
-      ) points
-    ) points
-    ` + conds.WhereCase() + `
-    GROUP BY ROUND(p.x)::int, ROUND(p.z)::int
-    HAVING score > 0
-    ORDER BY count DESC`
-	rows, err := s.db.QueryContext(ctx, q, conds.whereArgs...)
-	if err != nil {
-		return nil, err
-	}
-	// log.Info().Msg(q + "\n" + spew.Sdump(conds.whereArgs))
-	cd, err := CollectRows(rows, func(row CollectableRow) (ret image.Point, err error) {
-		var d1, d2 int
-		err = row.Scan(&ret.X, &ret.Y, &d1, &d2)
-		return
-	})
-	if err != nil {
-		return nil, err
-	}
-	if len(cd) == 0 {
-		return nil, nil
+	if !conds.Has("areaRectangle") {
+		return nil, errors.New("no rectangle area specified")
 	}
 
-	targetGroup := walkPoints(cd, cd[0], 9)
+	areaHeat, err := s.GetKillCountsByCoord(ctx, conds)
+	if err != nil {
+		return nil, err
+	}
+
+	sort.Slice(areaHeat, func(i, j int) bool {
+		return areaHeat[i].Kills < areaHeat[j].Kills
+	})
+	areaPoints := make([]image.Point, len(areaHeat))
+	for i := range areaHeat {
+		areaPoints[i] = image.Point{X: int(areaHeat[i].X), Y: int(areaHeat[i].Z)}
+	}
+
+	targetGroup := walkPoints(areaPoints, areaPoints[0], 9)
 
 	targetCoords := make([][]int32, len(targetGroup))
 	for i := range targetGroup {
 		targetCoords[i] = []int32{int32(targetGroup[i].X), int32(targetGroup[i].Y)}
 	}
 
-	q = `SELECT
+	q := `SELECT
 	  ROUND(k.killer_posx)::int AS killer_x,
 	  ROUND(k.killer_posz)::int AS killer_z,
 	  ROUND(k.victim_posx)::int AS victim_x,
@@ -247,9 +374,10 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions
 	GROUP BY ROUND(k.killer_posx)::int, ROUND(k.killer_posz)::int, ROUND(k.victim_posx)::int, ROUND(k.victim_posz)::int
 	ORDER BY count DESC
 	LIMIT 10`
-	args := []any{conds.level, conds.region.Min.X, conds.region.Max.X, conds.region.Min.Y, conds.region.Max.Y, targetCoords}
-	// log.Info().Msg(q + "\n" + spew.Sdump(args))
-	rows, err = s.db.QueryContext(ctx, q, args...)
+	areaArgs := conds["area"].Args
+	args := []any{conds["level"].Args[0], areaArgs[0], areaArgs[1], areaArgs[2], areaArgs[3], targetCoords}
+	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -258,6 +386,15 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds *QueryConditions
 		err = row.Scan(&ret.FromX, &ret.FromZ, &ret.ToX, &ret.ToZ, &d1)
 		return
 	})
+}
+
+type PosStat struct {
+	Tally struct {
+		Kills, Deaths int
+	}
+	Angles struct {
+		ToKills, DeathsFrom AngleCountTallySlice
+	}
 }
 
 type AngleCountTally struct {
@@ -277,60 +414,86 @@ func (a AngleCountTallySlice) MarshalJSON() ([]byte, error) {
 	return ret.Bytes(), nil
 }
 
-func (s *KillsStorage) GetPosAnglesToKills(ctx context.Context, conds *QueryConditions, posx, posz int) ([]AngleCountTally, error) {
-	q := `
-	select round(degrees(
-  ST_Azimuth(
-    ST_Point(round(killer_posx), round(killer_posz)),
-    ST_Point(round(victim_posx), round(victim_posz)))
-  )),
-  count(*)
-	from kills
-	where
-  level = $1
-  and
-  (round(killer_posx) = $2 or round(killer_posx) = $2+1 or round(killer_posx) = $2-1)
-  and
-  (round(killer_posz) = $3 or round(killer_posz) = $3+1 or round(killer_posz) = $3-1)
-	group by 1
-	order by 2 desc`
-	args := []any{conds.level, posx, posz}
-	rows, err := s.db.QueryContext(ctx, q, args...)
+func (s *KillsStorage) GetPosStat(ctx context.Context, conds QueryConditions) (*PosStat, error) {
+	if conds == nil {
+		return nil, errors.ErrUnsupported
+	}
+	if !conds.HasAny("level", "mission") {
+		return nil, errors.New("specify either level or mission")
+	}
+	if !conds.HasAny("areaCircle") {
+		return nil, errors.New("no circle area specified")
+	}
+	areaHeat, err := s.GetKillCountsByCoord(ctx, conds)
 	if err != nil {
 		return nil, err
 	}
-	return CollectRows(rows, func(row CollectableRow) (ret AngleCountTally, err error) {
-		err = row.Scan(&ret.Angle, &ret.Count)
-		return
-	})
-}
 
-func (s *KillsStorage) GetPosAnglesDeathsFrom(ctx context.Context, conds *QueryConditions, posx, posz int) ([]AngleCountTally, error) {
+	areaKills, areaDeaths := 0, 0
+	for _, v := range areaHeat {
+		areaKills += int(v.Kills)
+		areaDeaths += int(v.Deaths)
+	}
+	ret := &PosStat{
+		Tally: struct {
+			Kills, Deaths int
+		}{
+			Kills:  areaKills,
+			Deaths: areaDeaths,
+		},
+		Angles: struct {
+			ToKills, DeathsFrom AngleCountTallySlice
+		}{},
+	}
+
+	qKillerCond, qVictimCond := conds.SeparatedConds()
 	q := `
-	select round(degrees(
-  ST_Azimuth(
-    ST_Point(round(victim_posx), round(victim_posz)),
-    ST_Point(round(killer_posx), round(killer_posz)))
-  )),
-  count(*)
-	from kills
-	where
-  level = $1
-  and
-  (round(victim_posx) = $2 or round(victim_posx) = $2+1 or round(victim_posx) = $2-1)
-  and
-  (round(victim_posz) = $3 or round(victim_posz) = $3+1 or round(victim_posz) = $3-1)
-	group by 1
-	order by 2 desc`
-	args := []any{conds.level, posx, posz}
+select round(degrees(
+		ST_Azimuth(
+		ST_Point(round(killer_posx), round(killer_posz)),
+		ST_Point(round(victim_posx), round(victim_posz)))
+	)), count(*)
+from kills
+` + conds.WhereCase() + qKillerCond + `
+group by 1
+order by 2 desc`
+	args := conds.Args()
+	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
 	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, err
 	}
-	return CollectRows(rows, func(row CollectableRow) (ret AngleCountTally, err error) {
+	ret.Angles.ToKills, err = CollectRows(rows, func(row CollectableRow) (ret AngleCountTally, err error) {
 		err = row.Scan(&ret.Angle, &ret.Count)
 		return
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	q = `
+select round(degrees(
+		ST_Azimuth(
+		ST_Point(round(victim_posx), round(victim_posz)),
+		ST_Point(round(killer_posx), round(killer_posz)))
+	)), count(*)
+from kills
+` + conds.WhereCase() + qVictimCond + `
+group by 1
+order by 2 desc`
+	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
+	rows, err = s.db.QueryContext(ctx, q, args...)
+	if err != nil {
+		return nil, err
+	}
+	ret.Angles.DeathsFrom, err = CollectRows(rows, func(row CollectableRow) (ret AngleCountTally, err error) {
+		err = row.Scan(&ret.Angle, &ret.Count)
+		return
+	})
+	if err != nil {
+		return nil, err
+	}
+	return ret, nil
 }
 
 func walkPoints(group []image.Point, start image.Point, iters int) []image.Point {

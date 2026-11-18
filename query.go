@@ -10,6 +10,7 @@ import (
 
 func isDefaultQuery(vals url.Values) bool {
 	d := map[string]string{
+		"mission":               "",
 		"team":                  "",
 		"killTimeMin":           "",
 		"killTimeMax":           "",
@@ -21,6 +22,11 @@ func isDefaultQuery(vals url.Values) bool {
 		"victimBattleRatingMax": "",
 		"victimVehicleClass":    "",
 		"victimVehicleCountry":  "",
+		"sessionTimeMin":        "",
+		"sessionTimeMax":        "",
+		"x":                     "",
+		"z":                     "",
+		"r":                     "",
 	}
 	for k, v := range vals {
 		dv, ok := d[k]
@@ -37,9 +43,15 @@ func isDefaultQuery(vals url.Values) bool {
 	return true
 }
 
-func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
-	kq := &killstorage.QueryConditions{}
-	if !kq.QueryWithLevel(level) {
+func buildKillQuery(q url.Values) killstorage.QueryConditions {
+	kq := killstorage.QueryConditions{}
+	if val := q.Get("level"); val != "" {
+		kq.QueryWithLevel(val)
+	}
+	if val := q.Get("mission"); val != "" {
+		kq.QueryWithMission(val)
+	}
+	if len(kq) == 0 {
 		return nil
 	}
 	if val := urlValueInt(q, "team"); val != nil {
@@ -133,6 +145,19 @@ func buildKillQuery(q url.Values, level string) *killstorage.QueryConditions {
 			victimVehicles[i] = "tankmodels/" + victimVehicles[i]
 		}
 		kq.QueryWithVictimVehicles(victimVehicles)
+	}
+	if val := urlValueInt(q, "sessionTimeMin"); val != nil {
+		kq.QueryWithSessionTimeMin(time.Unix(int64(*val), 0))
+	}
+	if val := urlValueInt(q, "sessionTimeMax"); val != nil {
+		kq.QueryWithSessionTimeMax(time.Unix(int64(*val), 0))
+	}
+	if x := urlValueInt(q, "x"); x != nil {
+		if z := urlValueInt(q, "z"); z != nil {
+			if r := urlValueInt(q, "r"); r != nil {
+				kq.QueryWithAreaCircle(float64(*x), float64(*z), float64(*r))
+			}
+		}
 	}
 	return kq
 }

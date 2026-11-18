@@ -1,12 +1,10 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"image/color"
 	"main/frontend"
-	"main/lib/killstorage-duckdb"
 	"main/lib/staticassets"
 	"math"
 	"net/http"
@@ -137,8 +135,13 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 	perf := time.Now()
 	q := r.URL.Query()
 	level := q.Get("level")
+	kq := buildKillQuery(q)
+	if kq == nil {
+		w.WriteHeader(400)
+		return
+	}
 	box, ok := areaBoxFromQuery(q)
-	if level == "" || !ok {
+	if !ok {
 		w.WriteHeader(400)
 		return
 	}
@@ -150,13 +153,7 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
-
-	kq := buildKillQuery(q, level)
-	if kq == nil {
-		w.WriteHeader(204)
-		return
-	}
-	kq.QueryWithArea(levelOffsets.TankMapAreaToWorld(box))
+	kq.QueryWithAreaRectangle(levelOffsets.TankMapAreaToWorld(box))
 
 	tally, err := ks.GetAreaArrows(r.Context(), kq)
 	if err != nil {
@@ -201,6 +198,11 @@ const areaStatsLimit = 25
 func serveAreaStats(w http.ResponseWriter, r *http.Request) templ.Component {
 	q := r.URL.Query()
 	level := q.Get("level")
+	kq := buildKillQuery(q)
+	if kq == nil {
+		w.WriteHeader(400)
+		return nil
+	}
 	box, ok := areaBoxFromQuery(q)
 	if level == "" || !ok {
 		w.WriteHeader(400)
@@ -214,13 +216,7 @@ func serveAreaStats(w http.ResponseWriter, r *http.Request) templ.Component {
 		return nil
 	}
 	x0, z0, x1, z1 := levelOffsets.TankMapAreaToWorld(box)
-
-	kq := buildKillQuery(q, level)
-	if kq == nil {
-		w.WriteHeader(204)
-		return nil
-	}
-	kq.QueryWithArea(x0, z0, x1, z1)
+	kq.QueryWithAreaRectangle(x0, z0, x1, z1)
 
 	stats, err := ks.GetVehicleStatsByArea(r.Context(), kq, areaStatsLimit)
 	if err != nil {
@@ -247,93 +243,21 @@ func servePosStat(w http.ResponseWriter, r *http.Request) {
 	if !apiAuthorizedFor(w, r, "pos") {
 		return
 	}
-	q := r.URL.Query()
-	level := q.Get("level")
-	kq := buildKillQuery(q, level)
+	kq := buildKillQuery(r.URL.Query())
 	if kq == nil {
-		w.WriteHeader(204)
-		return
-	}
-
-	x, z := urlValueInt(q, "x"), urlValueInt(q, "z")
-	if x == nil || z == nil {
 		w.WriteHeader(400)
-		w.Write([]byte("coord is incorrect\n"))
 		return
 	}
 
-	perf := time.Now()
-
-	tallyTotalKills := 0
-	tallyTotalDeaths := 0
-	err := cachedHeat.Access(level, func(cha *cachedHeatAggregate) (*cachedHeatAggregate, error) {
-		if cha == nil {
-			var err error
-			cha, err = cachedHeatInitAggregate(context.Background(), level)
-			if err != nil {
-				return nil, err
-			}
-		}
-		foundRows := 0
-		for _, row := range cha.tally {
-			cx := int(row.x)
-			if cx != *x && cx != *x-1 && cx != *x+1 {
-				continue
-			}
-			foundRows++
-			foundVals := 0
-			for _, v := range row.row {
-				cz := int(v.z)
-				if cz != *z && cz != *z-1 && cz != *z+1 {
-					continue
-				}
-				foundVals++
-				tallyTotalKills += int(v.kills)
-				tallyTotalDeaths += int(v.deaths)
-				if foundVals == 3 {
-					break
-				}
-			}
-			if foundRows == 3 {
-				break
-			}
-		}
-		return cha, nil
-	})
+	ret, err := ks.GetPosStat(r.Context(), kq)
 	if err != nil {
 		w.WriteHeader(500)
-		log.Err(err).Msg("cached heat pos stat")
+		log.Err(err).Msg("GetPosStat")
 		return
 	}
-	log.Info().Str("perf", time.Since(perf).Round(time.Millisecond).String()).Msg("prof tally from cache")
-
-	anglesKills, err := ks.GetPosAnglesToKills(r.Context(), kq, *x, *z)
-	if err != nil {
-		w.WriteHeader(500)
-		log.Err(err).Msg("GetPosAnglesToKills")
-		return
-	}
-	log.Info().Str("perf", time.Since(perf).Round(time.Millisecond).String()).Msg("prof angles to kills")
-
-	anglesDeaths, err := ks.GetPosAnglesDeathsFrom(r.Context(), kq, *x, *z)
-	if err != nil {
-		w.WriteHeader(500)
-		log.Err(err).Msg("GetPosAnglesDeathsFrom")
-		return
-	}
-	log.Info().Str("perf", time.Since(perf).Round(time.Millisecond).String()).Msg("prof angles deaths from")
 
 	w.WriteHeader(200)
-	err = json.NewEncoder(w).Encode(map[string]any{
-		"tally": map[string]any{
-			"kills":  tallyTotalKills,
-			"deaths": tallyTotalDeaths,
-		},
-		"angles": map[string]any{
-			"toKills":    killstorage.AngleCountTallySlice(anglesKills),
-			"deathsFrom": killstorage.AngleCountTallySlice(anglesDeaths),
-		},
-	})
+	err = json.NewEncoder(w).Encode(ret)
 	if err != nil {
 		log.Err(err).Msg("json encode")
 	}
@@ -351,6 +275,11 @@ func serveRegion(w http.ResponseWriter, r *http.Request) {
 	}
 	q := r.URL.Query()
 	level := q.Get("level")
+	kq := buildKillQuery(q)
+	if kq == nil {
+		w.WriteHeader(400)
+		return
+	}
 	box, ok := areaBoxFromQuery(q)
 	if level == "" || !ok {
 		w.WriteHeader(400)
@@ -365,12 +294,7 @@ func serveRegion(w http.ResponseWriter, r *http.Request) {
 	}
 	x0, z0, x1, z1 := levelOffsets.TankMapAreaToWorld(box)
 
-	kq := buildKillQuery(q, level)
-	if kq == nil {
-		w.WriteHeader(204)
-		return
-	}
-	kq.QueryWithArea(x0, z0, x1, z1)
+	kq.QueryWithAreaRectangle(x0, z0, x1, z1)
 
 	stats, err := ks.GetVehicleStatsByArea(r.Context(), kq, areaStatsLimit)
 	if err != nil {
