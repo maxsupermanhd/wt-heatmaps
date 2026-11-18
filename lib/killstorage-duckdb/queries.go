@@ -375,7 +375,7 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 	GROUP BY ROUND(k.killer_posx)::int, ROUND(k.killer_posz)::int, ROUND(k.victim_posx)::int, ROUND(k.victim_posz)::int
 	ORDER BY count DESC
 	LIMIT 10`
-	areaArgs := conds["area"].Args
+	areaArgs := conds["areaRectangle"].Args
 	args := []any{conds["level"].Args[0], areaArgs[0], areaArgs[1], areaArgs[2], areaArgs[3], targetCoords}
 	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
 	rows, err := s.db.QueryContext(ctx, q, args...)
