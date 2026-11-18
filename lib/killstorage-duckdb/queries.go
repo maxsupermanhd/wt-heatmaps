@@ -305,7 +305,8 @@ with unpacked as (
 )
 select vehicle, sum(kills), sum(deaths)
 from unpacked
-group by vehicle`
+group by vehicle
+order by sum(kills) + sum(deaths) desc`
 	if limit > 0 {
 		q += ` LIMIT ` + strconv.Itoa(limit) + `;`
 	}
