@@ -357,6 +357,10 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 		return nil, err
 	}
 
+	if len(areaHeat) == 0 {
+		return nil, nil
+	}
+
 	sort.Slice(areaHeat, func(i, j int) bool {
 		return areaHeat[i].Kills < areaHeat[j].Kills
 	})
