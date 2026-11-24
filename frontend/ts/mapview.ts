@@ -2,10 +2,19 @@
 
 export const mapSize = 2048;
 
-const svg = document.getElementById("mapview");
+export type Point = { x: number; y: number };
+
+export type Tool = {
+	down(e: PointerEvent): void;
+	move(e: PointerEvent): void;
+	up(e: PointerEvent): void;
+	cancel(): void;
+};
+
+const svg = document.getElementById("mapview") as unknown as SVGSVGElement;
 let vb = { x: 0, y: 0, w: mapSize, h: mapSize };
-let tool = null;
-const pointers = new Map();
+let tool: Tool | null = null;
+const pointers = new Map<number, Point>();
 
 function setViewBox() {
 	svg.setAttribute("viewBox", `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
@@ -25,7 +34,7 @@ function fitViewBox() {
 
 // zoomAt scales the view by factor and keeps the map point under the client
 // position x, y in place
-function zoomAt(x, y, factor) {
+function zoomAt(x: number, y: number, factor: number) {
 	const rect = svg.getBoundingClientRect();
 	const fx = (x - rect.left) / rect.width;
 	const fy = (y - rect.top) / rect.height;
@@ -38,13 +47,13 @@ function zoomAt(x, y, factor) {
 	setViewBox();
 }
 
-function pan(dx, dy) {
+function pan(dx: number, dy: number) {
 	vb.x -= (dx / svg.clientWidth) * vb.w;
 	vb.y -= (dy / svg.clientHeight) * vb.h;
 	setViewBox();
 }
 
-export function toMap(e) {
+export function toMap(e: PointerEvent): Point {
 	const rect = svg.getBoundingClientRect();
 	return {
 		x: vb.x + ((e.clientX - rect.left) / rect.width) * vb.w,
@@ -54,7 +63,7 @@ export function toMap(e) {
 
 // setTool gives one-finger and mouse drags to a tool with down, move, up and
 // cancel handlers. null gives them back to pan and zoom.
-export function setTool(t) {
+export function setTool(t: Tool | null) {
 	tool = t;
 	svg.style.cursor = t != null ? "crosshair" : "";
 }
@@ -106,7 +115,7 @@ svg.addEventListener("pointermove", (e) => {
 	} else {
 		// two fingers: the zoom follows their distance, and the view moves
 		// with the point between them
-		const other = [...pointers].find(([id]) => id != e.pointerId)[1];
+		const other = [...pointers].find(([id]) => id != e.pointerId)![1];
 		const before = Math.hypot(last.x - other.x, last.y - other.y);
 		const after = Math.hypot(e.clientX - other.x, e.clientY - other.y);
 		zoomAt((e.clientX + other.x) / 2, (e.clientY + other.y) / 2, before / after);

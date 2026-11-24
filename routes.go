@@ -29,6 +29,7 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /", httpLog(handle404))
 	mux.HandleFunc("GET /robots.txt", httpLog(handleRobots))
+	mux.HandleFunc("GET /healthz", handleHealthz)
 	mux.HandleFunc("GET /favicon.ico", httpLog(handleFavicon))
 	mux.HandleFunc("GET /static/{name...}", httpLog(staticAssets.ServeHTTP))
 	mux.HandleFunc("GET /{$}", httpLog(ensureCached(compRenderFn(serveIndex), cachedKSAmountsByLevel)))
@@ -153,6 +154,21 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(err.Error()))
 		return
 	}
+	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
+	areaH := float32(math.Abs(float64(levelOffsets.TankMap0[1] - levelOffsets.TankMap1[1])))
+	areaOffsetX := levelOffsets.TankMap0[0]
+	areaOffsetZ := levelOffsets.TankMap0[1]
+
+	const linesOpen = `<g id="mapviewLines" stroke="#f11a" width="100%" height="100%" stroke-width="0.3" stroke-linecap="round">`
+	// a level with no tank map area gets no lines, as the scaling below would
+	// divide by zero
+	if areaW == 0 || areaH == 0 {
+		if _, err := fmt.Fprint(w, linesOpen+`</g>`); err != nil {
+			log.Err(err).Msg("write arrows response")
+		}
+		return
+	}
+
 	kq.QueryWithAreaRectangle(levelOffsets.TankMapAreaToWorld(box))
 
 	tally, err := ks.GetAreaArrows(r.Context(), kq)
@@ -163,16 +179,15 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
-	areaH := float32(math.Abs(float64(levelOffsets.TankMap0[1] - levelOffsets.TankMap1[1])))
-	areaOffsetX := levelOffsets.TankMap0[0]
-	areaOffsetZ := levelOffsets.TankMap0[1]
 	// outputW := int(areaW)
 	// outputH := int(areaH)
 	// out := gg.NewContext(outputW, outputH)
 	// out.SetRGBA255(255, 30, 30, 255)
 
-	fmt.Fprint(w, `<g id="mapviewLines" stroke="#f11a" width="100%" height="100%" stroke-width="0.3" stroke-linecap="round">`)
+	if _, err := fmt.Fprint(w, linesOpen); err != nil {
+		log.Err(err).Msg("write arrows response")
+		return
+	}
 
 	totalN := 0
 	for _, v := range tally {
@@ -412,6 +427,13 @@ func servePermaRedirect(location string) func(w http.ResponseWriter, r *http.Req
 func handleRobots(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(200)
 	fmt.Fprint(w, "User-agent: *\nAllow: /\n")
+}
+
+func handleHealthz(w http.ResponseWriter, _ *http.Request) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	if _, err := fmt.Fprint(w, "ok"); err != nil {
+		log.Err(err).Msg("write healthz response")
+	}
 }
 
 //go:embed static/nanachi-favicon.png

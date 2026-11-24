@@ -7,3 +7,6 @@ config.json
 *.wal
 notification.html*
 dump.json
+static/dist/
+*.diff
+*.patch

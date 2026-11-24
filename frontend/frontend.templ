@@ -12,7 +12,6 @@ templ Page(content templ.Component) {
 			<title>WT-Heatmaps</title>
 			<link href={ StaticAssets.URL("style.css") } rel="stylesheet"/>
 			<link href="/static/nanachi-favicon.png" rel="icon"/>
-			<script src={ StaticAssets.URL("htmx.min.js") }></script>
 			// <script src={ StaticAssets.URL("htmx-ext-ws.min.js") }></script>
 		</head>
 		<body class="mainstyle">
@@ -106,7 +105,7 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 				<image style="image-rendering: pixelated;" id="tankmap"></image>
 				<image style="image-rendering: pixelated; width:2048px; height:2048px" id="heat"></image>
 				<rect id="areaSelect" style="display: none; fill: #ffffff20; stroke: #fff; stroke-width: 2; vector-effect: non-scaling-stroke;"></rect>
-				<g id="mapviewLines"></g>
+				<g id="mapviewLines" hx-sync="this:replace"></g>
 			</svg>
 		</div>
 		<div class="panelToggles">
@@ -199,15 +198,16 @@ templ Index(levels []LevelStat, battleRatingMax int) {
 			<div class="areaHead">
 				<button type="button" id="areaSelectBtn">Select area</button>
 				<button type="button" id="areaClearBtn" disabled>Clear area</button>
+				<button type="button" id="areaCopyBtn" disabled>Copy link</button>
 			</div>
 			<small class="hint">
 				Drag a box on the map to get the kills and deaths of every vehicle in it.
 				The data filters apply to the box as well.
 			</small>
-			<div id="areaStatsResults"></div>
+			<div id="areaStatsResults" hx-sync="this:replace"></div>
 		</div>
 	</div>
-	<script type="module" src={ StaticAssets.URL("main.js") }></script>
+	<script type="module" src={ StaticAssets.URL("dist/main.js") }></script>
 }
 
 templ vehicleFilter(title, prefix string, battleRatingMax int) {

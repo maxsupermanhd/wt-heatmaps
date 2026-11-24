@@ -1,15 +1,17 @@
 // map picker: the search box ranks the maps as the user types. A pick sets the
 // hidden level input and sends a change event from it.
 
-const mapSearch = document.getElementById("mapSearch");
-const mapList = document.getElementById("levelSelector");
-const levelInput = document.getElementById("settingsFormLevelInput");
-const mapEntries = [...mapList.querySelectorAll("button")].map((btn) => ({
+const mapSearch = document.getElementById("mapSearch") as HTMLInputElement;
+const mapList = document.getElementById("levelSelector") as HTMLDivElement;
+const levelInput = document.getElementById("settingsFormLevelInput") as HTMLInputElement;
+type MapEntry = { btn: HTMLButtonElement; name: string; id: string };
+
+const mapEntries: MapEntry[] = [...mapList.querySelectorAll("button")].map((btn) => ({
 	btn,
-	name: btn.dataset.name.toLowerCase(),
-	id: btn.dataset.level.toLowerCase(),
+	name: btn.dataset.name!.toLowerCase(),
+	id: btn.dataset.level!.toLowerCase(),
 }));
-let mapActive = null;
+let mapActive: HTMLButtonElement | null = null;
 
 function openMapList() {
 	const r = mapSearch.getBoundingClientRect();
@@ -32,7 +34,7 @@ function closeMapList() {
 
 function filterMapList() {
 	const q = mapSearch.value.trim().toLowerCase();
-	const ranked = [];
+	const ranked: [number, MapEntry][] = [];
 	for (const e of mapEntries) {
 		const score = q == "" ? 0 : scoreMapEntry(q, e);
 		e.btn.hidden = score == null;
@@ -48,7 +50,7 @@ function filterMapList() {
 	setMapActive(ranked.length > 0 ? ranked[0][1].btn : null);
 }
 
-function setMapActive(btn) {
+function setMapActive(btn: HTMLButtonElement | null) {
 	mapActive?.classList.remove("active");
 	mapActive = btn;
 	if (btn != null) {
@@ -57,9 +59,9 @@ function setMapActive(btn) {
 	}
 }
 
-function pickMap(btn) {
-	levelInput.value = btn.dataset.level;
-	mapSearch.value = btn.dataset.name;
+function pickMap(btn: HTMLButtonElement) {
+	levelInput.value = btn.dataset.level!;
+	mapSearch.value = btn.dataset.name!;
 	closeMapList();
 	mapSearch.blur();
 	levelInput.dispatchEvent(new Event("change", { bubbles: true }));
@@ -77,7 +79,8 @@ mapSearch.addEventListener("input", () => {
 mapSearch.addEventListener("blur", closeMapList);
 mapSearch.addEventListener("keydown", (e) => {
 	const shown = mapEntries.filter((v) => !v.btn.hidden).map((v) => v.btn);
-	const i = shown.indexOf(mapActive);
+	// indexOf gives -1 for a null mapActive
+	const i = shown.indexOf(mapActive as HTMLButtonElement);
 	switch (e.key) {
 		case "ArrowDown":
 			e.preventDefault();
@@ -101,7 +104,7 @@ mapSearch.addEventListener("keydown", (e) => {
 // before the click
 mapList.addEventListener("mousedown", (e) => e.preventDefault());
 mapList.addEventListener("click", (e) => {
-	const btn = e.target.closest("button");
+	const btn = (e.target as Element).closest("button");
 	if (btn != null) {
 		pickMap(btn);
 	}
@@ -116,7 +119,7 @@ window.addEventListener("resize", () => {
 // scoreMapEntry returns null when neither field matches the query. Otherwise it
 // returns the better of the name score and half the id score, so a name match
 // wins over an id match of the same quality.
-function scoreMapEntry(q, entry) {
+function scoreMapEntry(q: string, entry: MapEntry): number | null {
 	const byName = fuzzyScore(q, entry.name);
 	const byId = fuzzyScore(q, entry.id.replace(/[_\-]/g, " "));
 	if (byName == null && byId == null) {
@@ -130,7 +133,7 @@ function scoreMapEntry(q, entry) {
 // with the query or right after a word break, and leave few extra letters.
 // Subsequence matching finds a query spread over a long name. When that comes
 // up empty, a near-exact word match covers one typing mistake.
-function fuzzyScore(query, text) {
+function fuzzyScore(query: string, text: string): number | null {
 	let qi = 0;
 	let start = -1;
 	let last = -1;
@@ -175,12 +178,12 @@ function fuzzyScore(query, text) {
 // text, and turns that equality into a low match score. It exists for swapped
 // or mistyped letters ("kurks" for "kursk"), which subsequence matching cannot
 // see. The allowed number of edits grows slowly with the query length.
-function typoWordScore(query, text) {
+function typoWordScore(query: string, text: string): number | null {
 	const maxEdits = query.length <= 1 ? 0 : 1 + Math.floor(query.length / 5);
 	if (text.length < query.length - maxEdits) {
 		return null;
 	}
-	let best = null;
+	let best: number | null = null;
 	for (const word of text.split(/\s+/)) {
 		if (word == "") {
 			continue;
@@ -200,7 +203,7 @@ function typoWordScore(query, text) {
 // damerauLevenshtein counts insertions, deletions, substitutions, and adjacent
 // transpositions each as one edit. It is the distance two short words differ
 // by, and it is small enough here to run on every keystroke.
-function damerauLevenshtein(a, b) {
+function damerauLevenshtein(a: string, b: string): number {
 	const n = a.length;
 	const m = b.length;
 	if (n == 0) {
@@ -209,7 +212,7 @@ function damerauLevenshtein(a, b) {
 	if (m == 0) {
 		return n;
 	}
-	const d = new Array(n + 1);
+	const d: number[][] = new Array(n + 1);
 	for (let i = 0; i <= n; i++) {
 		d[i] = new Array(m + 1);
 		d[i][0] = i;

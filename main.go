@@ -32,6 +32,7 @@ var (
 )
 
 func main() {
+	flag.Parse()
 
 	must(os.WriteFile("/proc/"+strconv.Itoa(os.Getpid())+"/oom_score_adj", []byte("1000"), 0644))
 
@@ -44,6 +45,12 @@ func main() {
 			Compress: true,
 		}))
 	log.Info().Msg("hello world")
+
+	// a plain go build does not bundle the frontend, and the page then loads
+	// with no script
+	if _, err := os.Stat("static/dist/main.js"); err != nil {
+		log.Warn().Err(err).Msg("no frontend bundle in static/dist, run ./build.sh")
+	}
 
 	var gopsAgentStarted bool
 	if cfg.GetDBool(false, "gops") {

@@ -73,6 +73,11 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Info().Msgf("heat perf total %s", time.Since(perf).String())
 	if err != nil {
+		log.Err(err).Msg("get cached heat")
+		w.WriteHeader(500)
+		if _, err := w.Write([]byte(err.Error())); err != nil {
+			log.Err(err).Msg("write heat response")
+		}
 		return
 	}
 
@@ -88,6 +93,11 @@ func renderTally(levelOffsets levelcoords.LevelCoords, tally iter.Seq[*killstora
 	areaOffsetZ := levelOffsets.TankMap0[1]
 	outputW := int(areaW)
 	outputH := int(areaH)
+	// a level with no tank map area has no pixels, and the scaling below
+	// would divide by zero
+	if outputW == 0 || outputH == 0 {
+		return nil
+	}
 	out := image.NewRGBA(image.Rect(0, 0, outputW, outputH))
 
 	scoreIntensity := int64(urlValueIntOr(q, "scoreIntensity", 0))

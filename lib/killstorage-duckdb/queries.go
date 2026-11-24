@@ -83,14 +83,14 @@ func (q QueryConditions) QueryWithVictimVehicles(vehicles []string) {
 }
 
 func (q QueryConditions) QueryWithSessionTimeMin(tsFrom time.Time) {
-	q["session_time"] = &QueryCondition{
+	q["session_time_min"] = &QueryCondition{
 		Cond: "session_time >= ?",
 		Args: []any{tsFrom},
 	}
 }
 
 func (q QueryConditions) QueryWithSessionTimeMax(tsTo time.Time) {
-	q["session_time"] = &QueryCondition{
+	q["session_time_max"] = &QueryCondition{
 		Cond: "session_time < ?",
 		Args: []any{tsTo},
 	}
@@ -119,14 +119,14 @@ func (q QueryConditions) QueryWithVictimTeam(team int) {
 }
 
 func (q QueryConditions) QueryWithKillTimeMin(killTimeMin time.Duration) {
-	q["kill_time"] = &QueryCondition{
+	q["kill_time_min"] = &QueryCondition{
 		Cond: "kill_time >= ?",
 		Args: []any{int(killTimeMin.Milliseconds())},
 	}
 }
 
 func (q QueryConditions) QueryWithKillTimeMax(killTimeMax time.Duration) {
-	q["kill_time"] = &QueryCondition{
+	q["kill_time_max"] = &QueryCondition{
 		Cond: "kill_time <= ?",
 		Args: []any{int(killTimeMax.Milliseconds())},
 	}
@@ -386,9 +386,9 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 	  COUNT(k) AS count
 	FROM kills k
 	` + conds.WhereCase() + qKillerCond + ` and
-	NOT (k.victim_posx BETWEEN $2 AND $3 AND k.victim_posz BETWEEN $4 AND $5) AND
+	NOT (k.victim_posx BETWEEN ? AND ? AND k.victim_posz BETWEEN ? AND ?) AND
 	  (ROUND(k.killer_posx)::int, ROUND(k.killer_posz)::int) IN (
-			SELECT a['unnest'][1], a['unnest'][2] FROM UNNEST($6::int[][]) a)
+			SELECT a['unnest'][1], a['unnest'][2] FROM UNNEST(?::int[][]) a)
 	GROUP BY ROUND(k.killer_posx)::int, ROUND(k.killer_posz)::int, ROUND(k.victim_posx)::int, ROUND(k.victim_posz)::int
 	ORDER BY count DESC
 	LIMIT 10`
