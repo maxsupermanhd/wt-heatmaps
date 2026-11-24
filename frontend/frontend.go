@@ -73,15 +73,19 @@ func GetVCSSummary(s []debug.BuildSetting) string {
 	return strings.Join(ret, " ")
 }
 
-var currentNotification = readNotificationFromFile("notification.html")
+var currentNotification string
 
-func readNotificationFromFile(fpath string) string {
+// LoadNotification sets the notification that all pages show. A missing file
+// gives no notification.
+func LoadNotification(fpath string) {
 	b, err := os.ReadFile(fpath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return ""
+			currentNotification = ""
+			return
 		}
-		return "error reading notification file: " + err.Error()
+		currentNotification = "error reading notification file: " + err.Error()
+		return
 	}
-	return string(b)
+	currentNotification = string(b)
 }

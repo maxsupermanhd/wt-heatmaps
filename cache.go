@@ -112,7 +112,7 @@ func cachedHeatInitAggregate(ctx context.Context, k string) (*cachedHeatAggregat
 	t, err := ks.GetKillCountsByCoord(ctx, kq)
 	if err != nil {
 		log.Err(err).Msg("GetKillCountsByCoord while caching")
-		return a, err
+		return nil, err
 	}
 	if len(t) == 0 {
 		return a, nil
@@ -162,62 +162,35 @@ func cachedHeatInitAggregate(ctx context.Context, k string) (*cachedHeatAggregat
 func cachedHeatPopulate(ctx context.Context, k string, kills []killstorage.Kill) error {
 	return cachedHeat.Access(k, func(a *cachedHeatAggregate) (*cachedHeatAggregate, error) {
 		if a == nil {
-			var err error
-			a, err = cachedHeatInitAggregate(ctx, k)
-			if err != nil {
-				return a, err
-			}
+			return cachedHeatInitAggregate(ctx, k)
 		}
-		a.sumDeaths += uint64(len(kills))
-		a.sumKills += uint64(len(kills))
-		for _, v := range kills {
-			kx := int32(math.Round(v.KillerPosX))
-			kz := int32(math.Round(v.KillerPosZ))
-			vx := int32(math.Round(v.VictimPosX))
-			vz := int32(math.Round(v.VictimPosZ))
-
-			// todo: binary search
-			addTally := func(rows []cachedHeatAggregateRow, tx, tz int32, tk, td uint32) []cachedHeatAggregateRow {
-				rowFound := false
-				for _, row := range rows {
-					if row.x != tx {
-						continue
-					}
-					rowFound = true
-					pixFound := false
-					for _, pix := range row.row {
-						if pix.z != tz {
-							continue
-						}
-						pixFound = true
-						pix.deaths += td
-						pix.kills += tk
-						break
-					}
-					if !pixFound {
-						row.row = append(row.row, cachedHeatAggregatePoint{
-							z:      tz,
-							kills:  tk,
-							deaths: td,
-						})
-					}
-					break
-				}
-				if !rowFound {
-					rows = append(rows, cachedHeatAggregateRow{
-						x: tx,
-						row: []cachedHeatAggregatePoint{cachedHeatAggregatePoint{
-							z:      tz,
-							kills:  tk,
-							deaths: td,
-						}},
-					})
-				}
-				return rows
+		addTally := func(tx, tz int32, tk, td uint32) {
+			ri := slices.IndexFunc(a.tally, func(row cachedHeatAggregateRow) bool { return row.x == tx })
+			if ri < 0 {
+				a.tally = append(a.tally, cachedHeatAggregateRow{
+					x:   tx,
+					row: []cachedHeatAggregatePoint{{z: tz, kills: tk, deaths: td}},
+				})
+				return
 			}
-
-			a.tally = addTally(a.tally, kx, kz, 1, 0)
-			a.tally = addTally(a.tally, vx, vz, 0, 1)
+			row := &a.tally[ri]
+			pi := slices.IndexFunc(row.row, func(pix cachedHeatAggregatePoint) bool { return pix.z == tz })
+			if pi < 0 {
+				row.row = append(row.row, cachedHeatAggregatePoint{z: tz, kills: tk, deaths: td})
+				return
+			}
+			row.row[pi].kills += tk
+			row.row[pi].deaths += td
+		}
+		for _, v := range kills {
+			// the same filter as QueryWithDirectWeapon in cachedHeatInitAggregate
+			if v.Weapon == "" || v.Weapon == "artillery" {
+				continue
+			}
+			a.sumKills++
+			a.sumDeaths++
+			addTally(int32(math.Round(v.KillerPosX)), int32(math.Round(v.KillerPosZ)), 1, 0)
+			addTally(int32(math.Round(v.VictimPosX)), int32(math.Round(v.VictimPosZ)), 0, 1)
 		}
 		return a, nil
 	})

@@ -41,7 +41,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 	var errWrite, errRead error
 
 	wg.Go(func() {
-		defer log.Err(errWrite).Msg("write pump exited")
+		defer func() { log.Err(errWrite).Msg("write pump exited") }()
 		codec := websocket.Codec{
 			Marshal: func(v any) (data []byte, payloadType byte, err error) {
 				data, err = json.Marshal(v)
@@ -70,7 +70,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 	})
 
 	wg.Go(func() {
-		defer log.Err(errRead).Msg("read pump exited")
+		defer func() { log.Err(errRead).Msg("read pump exited") }()
 		msgpack.StructAsArray = false
 		msgDecompressed := make([]byte, 0, 20_000_000)
 		var msg []byte
@@ -142,6 +142,7 @@ func FetchFromIngest(log zerolog.Logger, cfg lac.Conf, exitChan <-chan struct{},
 				select {
 				case carvesChan <- &carve:
 				default:
+					log.Warn().Msg("carves channel is full, replay dropped")
 				}
 			}
 		}
@@ -177,11 +178,20 @@ func dialIngest(log zerolog.Logger, cfg lac.Conf) (*websocket.Conn, error) {
 		return nil, err
 	}
 	log.Info().Msg("ingest connected")
-	wsConn.SetDeadline(time.Now().Add(5 * time.Second))
+	err = wsConn.SetDeadline(time.Now().Add(5 * time.Second))
+	if err != nil {
+		return nil, errors.Join(err, wsConn.Close())
+	}
 	// ws, err := websocket.NewClient(wsConfig, &wsInspectRWC{conn: wsConn})
 	ws, err := websocket.NewClient(wsConfig, wsConn)
-	wsConn.SetDeadline(time.Time{})
-	return ws, err
+	if err != nil {
+		return nil, errors.Join(err, wsConn.Close())
+	}
+	err = wsConn.SetDeadline(time.Time{})
+	if err != nil {
+		return nil, errors.Join(err, ws.Close())
+	}
+	return ws, nil
 }
 
 type wsInspectRWC struct {

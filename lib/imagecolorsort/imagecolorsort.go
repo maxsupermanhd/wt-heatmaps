@@ -1,28 +1,54 @@
 package imagecolorsort
 
 import (
+	"bytes"
 	"cmp"
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"image"
+	"image/draw"
+	_ "image/png"
 	"maps"
 	"math"
+	"os"
 	"slices"
 	"sync"
+
+	"github.com/maxsupermanhd/flexcorallib/fclcache"
 )
 
-type ImageFetchFn[K cmp.Ordered] func(id K) (*image.RGBA, error)
+type ImageFetchFn[K cmp.Ordered] func(id K) ([]byte, error)
 
 type ImageColorSort[K cmp.Ordered] struct {
 	values  map[K]int
 	lock    sync.Mutex
 	fetchFn ImageFetchFn[K]
+	// key is the hex SHA-256 of the image file, value is the sort value
+	byHash *fclcache.SavingMapCache[string, int]
 }
 
-func NewImageColorSort[K cmp.Ordered](imageFetchFn ImageFetchFn[K]) *ImageColorSort[K] {
+func NewImageColorSort[K cmp.Ordered](cacheFilePath string, imageFetchFn ImageFetchFn[K]) (*ImageColorSort[K], error) {
+	byHash, err := fclcache.NewSavingMapCache[string, int](cacheFilePath, nil)
+	if err != nil {
+		return nil, err
+	}
+	b, err := os.ReadFile(cacheFilePath)
+	if err == nil {
+		err = json.Unmarshal(b, &byHash.Cache)
+		if err != nil {
+			return nil, fmt.Errorf("parsing %q: %w", cacheFilePath, err)
+		}
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return nil, err
+	}
 	return &ImageColorSort[K]{
 		values:  map[K]int{},
 		fetchFn: imageFetchFn,
-	}
+		byHash:  byHash,
+	}, nil
 }
 
 func (ics *ImageColorSort[K]) GetValues() map[K]int {
@@ -36,13 +62,34 @@ func (ics *ImageColorSort[K]) colorNOLOCK(id K) (int, error) {
 	if ok {
 		return ret, nil
 	}
-	im, err := ics.fetchFn(id)
+	ret, err := ics.colorFromFetch(id)
+	ics.values[id] = ret
+	if err != nil {
+		return ret, fmt.Errorf("color of %v: %w", id, err)
+	}
+	return ret, nil
+}
+
+func (ics *ImageColorSort[K]) colorFromFetch(id K) (int, error) {
+	b, err := ics.fetchFn(id)
 	if err != nil {
 		return 0, err
 	}
-	ret = score(im)
-	ics.values[id] = ret
-	return ret, nil
+	sum := sha256.Sum256(b)
+	h := hex.EncodeToString(sum[:])
+	ret, ok := ics.byHash.Cache[h]
+	if ok {
+		return ret, nil
+	}
+	im, _, err := image.Decode(bytes.NewReader(b))
+	if err != nil {
+		return 0, err
+	}
+	imRGBA := image.NewRGBA(im.Bounds())
+	draw.Draw(imRGBA, imRGBA.Rect, im, im.Bounds().Min, draw.Src)
+	ret = score(imRGBA)
+	ics.byHash.Cache[h] = ret
+	return ret, ics.byHash.SaveNOLOCK()
 }
 
 // slopbegin: image color score
@@ -103,19 +150,20 @@ func rgbToHue(r, g, b float64) float64 {
 
 // slopend: image color score
 
+// Sort keeps an id with no sort value in ids at NeutralValue, and returns
+// the errors of those ids.
 func (ics *ImageColorSort[K]) Sort(ids []K) error {
 	ics.lock.Lock()
 	defer ics.lock.Unlock()
 	errs := []error{}
+	for _, id := range ids {
+		_, err := ics.colorNOLOCK(id)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
 	slices.SortFunc(ids, func(a, b K) int {
-		av, err := ics.colorNOLOCK(a)
-		if err != nil {
-			errs = append(errs, err)
-		}
-		bv, err := ics.colorNOLOCK(b)
-		if err != nil {
-			errs = append(errs, err)
-		}
+		av, bv := ics.values[a], ics.values[b]
 		if av == bv {
 			return cmp.Compare(a, b)
 		}

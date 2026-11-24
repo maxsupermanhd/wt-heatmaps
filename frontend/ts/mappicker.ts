@@ -78,7 +78,8 @@ mapSearch.addEventListener("input", () => {
 });
 mapSearch.addEventListener("blur", closeMapList);
 mapSearch.addEventListener("keydown", (e) => {
-	const shown = mapEntries.filter((v) => !v.btn.hidden).map((v) => v.btn);
+	// the DOM order is the rank order that filterMapList made
+	const shown = [...mapList.querySelectorAll("button")].filter((btn) => !btn.hidden);
 	// indexOf gives -1 for a null mapActive
 	const i = shown.indexOf(mapActive as HTMLButtonElement);
 	switch (e.key) {

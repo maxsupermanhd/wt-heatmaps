@@ -36,8 +36,11 @@ export async function loadHeat(params: URLSearchParams): Promise<boolean> {
 		if (probe.src != "") {
 			URL.revokeObjectURL(probe.src);
 		}
+		if (load != heatLoad) {
+			return false;
+		}
 		// the minimap can show a different map now, so the old heat must go
-		if (load == heatLoad && heat != null) {
+		if (heat != null) {
 			URL.revokeObjectURL(heat.url);
 			heat = null;
 			heatImage.removeAttribute("href");

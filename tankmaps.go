@@ -9,14 +9,21 @@ import (
 	"image/png"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/maxsupermanhd/flexcorallib/fclcache"
 	"golang.org/x/image/draw"
 )
 
-var cachedTankmaps *fclcache.FetchFileCache
+var (
+	cachedTankmaps    *fclcache.FetchFileCache
+	tankmapHTTPClient = &http.Client{Timeout: 30 * time.Second}
+	// the level name goes into the fetch URL and the cache file name
+	tankmapLevelRegexp = regexp.MustCompile(`^levels/[A-Za-z0-9_-]+\.bin$`)
+)
 
 var tankmapNotFoundErr = errors.New("tankmap not found")
 
@@ -26,43 +33,28 @@ func tankmapFetchB64LEV(kb64 string) ([]byte, error) {
 		return nil, err
 	}
 	k := string(kb)
+	if !tankmapLevelRegexp.MatchString(k) {
+		return nil, fmt.Errorf("level name %q is not valid", k)
+	}
 	k = strings.TrimSuffix(k, ".bin")
 	k = strings.TrimPrefix(k, "levels/")
-	fetchUrl := "https://raw.githubusercontent.com/LivingTheDagor/WtMiniMapPictures/refs/heads/main/2048/" + k + "_tankmap.png"
-	resp, err := http.Get(fetchUrl)
+	fetchUrl := cfg.GetDString("https://raw.githubusercontent.com/LivingTheDagor/WtMiniMapPictures/refs/heads/main/2048/", "urls", "tankmapsPrefix") + k + "_tankmap.png"
+	resp, err := tankmapHTTPClient.Get(fetchUrl)
 	if err != nil {
 		return nil, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode == 404 {
 		return nil, tankmapNotFoundErr
 	}
 	if resp.StatusCode != 200 {
 		return nil, fmt.Errorf("%s while downloading %q", resp.Status, fetchUrl)
 	}
-	ret, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	return ret, err
+	return io.ReadAll(resp.Body)
 }
 
-func tankmapFromCache(id string) (*image.RGBA, error) {
-	ret, err := cachedTankmaps.Get(base64.StdEncoding.EncodeToString([]byte(id)))
-	if err != nil {
-		return nil, err
-	}
-	im, err := png.Decode(bytes.NewReader(ret))
-	imRGBA, ok := im.(*image.RGBA)
-	if !ok {
-		imNRGBA, ok := im.(*image.NRGBA)
-		if !ok {
-			return nil, fmt.Errorf("not rgba or nrgba from tankmap cache: %T", im)
-		}
-		imRGBA = &image.RGBA{
-			Pix:    imNRGBA.Pix,
-			Stride: imNRGBA.Stride,
-			Rect:   imNRGBA.Rect,
-		}
-	}
-	return imRGBA, nil
+func tankmapFromCache(id string) ([]byte, error) {
+	return cachedTankmaps.Get(base64.StdEncoding.EncodeToString([]byte(id)))
 }
 
 var (
@@ -82,6 +74,10 @@ func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	reqLevel := strings.TrimSuffix(r.PathValue("k"), ".png")
+	if !tankmapLevelRegexp.MatchString(reqLevel) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	k := base64.StdEncoding.EncodeToString([]byte(reqLevel))
 	if resizeTo == 128 {
 		cachedSmallTankmapsLock.Lock()

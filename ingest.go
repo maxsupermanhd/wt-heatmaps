@@ -56,7 +56,7 @@ func (i ingestPreferences) MarshalJSON() ([]byte, error) {
 }
 
 func (i ingestPreferences) Populated() bool {
-	return len(i.reqBrs) > 0 || len(i.reqMaps) > 0
+	return len(i.reqBrs) > 0 || len(i.reqMaps) > 0 || len(i.reqIDs) > 0
 }
 
 var (
@@ -121,22 +121,24 @@ func ingestRoutine(exitChan <-chan struct{}) {
 			kills, err := killstorage.IngestCarveToKills(carve)
 			if err != nil {
 				log.Err(err).Msg("carve to kills fail")
-				b, _ := json.Marshal(carve)
-				os.WriteFile("dump.json", b, 0644)
+				dumpCarve(carve)
 				continue
 			}
 			if len(kills) == 0 {
 				log.Error().Msg("no kills in the session?")
-				b, _ := json.Marshal(carve)
-				os.WriteFile("dump.json", b, 0644)
+				dumpCarve(carve)
 				continue
 			}
 			err = ks.StoreKills(kills)
 			if err != nil {
 				log.Err(err).Int("n", len(kills)).Msg("storing kills")
+				continue
 			}
 			lv := kills[0].Level
-			cachedHeatPopulate(context.Background(), lv, kills)
+			err = cachedHeatPopulate(context.Background(), lv, kills)
+			if err != nil {
+				log.Err(err).Str("level", lv).Msg("populate heat cache")
+			}
 			rate.Measure(len(kills))
 		}
 		log.Info().Msg("carve loop exited")
@@ -174,6 +176,18 @@ func ingestRoutine(exitChan <-chan struct{}) {
 	close(updatePreferencesExitChan)
 
 	wg.Wait()
+}
+
+func dumpCarve(carve *ingestprotogen.Replay) {
+	b, err := json.Marshal(carve)
+	if err != nil {
+		log.Err(err).Msg("marshal carve for dump.json")
+		return
+	}
+	err = os.WriteFile("dump.json", b, 0644)
+	if err != nil {
+		log.Err(err).Msg("write dump.json")
+	}
 }
 
 func getPreferences() (ret ingestPreferences, err error) {
@@ -237,7 +251,7 @@ func serveIngestPreferences(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
-	w.Header().Add("Last-Modified", t.Format("Mon, 02 Jan 2006 15:04:05")+" GMT")
+	w.Header().Add("Last-Modified", t.UTC().Format(http.TimeFormat))
 	w.WriteHeader(200)
 	w.Write(b)
 }

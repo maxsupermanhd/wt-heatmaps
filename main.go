@@ -6,6 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"main/frontend"
+	"main/lib/imagecolorsort"
 	killstorage "main/lib/killstorage-duckdb"
 	"os"
 	"os/signal"
@@ -34,9 +36,9 @@ var (
 func main() {
 	flag.Parse()
 
-	must(os.WriteFile("/proc/"+strconv.Itoa(os.Getpid())+"/oom_score_adj", []byte("1000"), 0644))
-
 	configLoad(*flConfigPath)
+
+	must(os.WriteFile("/proc/"+strconv.Itoa(os.Getpid())+"/oom_score_adj", []byte(cfg.GetDString("1000", "oomScoreAdj")), 0644))
 	log.Logger = log.Output(io.MultiWriter(
 		zerolog.ConsoleWriter{Out: os.Stderr},
 		&lumberjack.Logger{
@@ -62,6 +64,8 @@ func main() {
 	}
 
 	cachedTankmaps = noerr(fclcache.NewFetchFileCache(cfg.GetDString("./cache/tankmaps/", "cacheTankmaps"), tankmapFetchB64LEV))
+	levelByColorSorter = noerr(imagecolorsort.NewImageColorSort(cfg.GetDString("./cache/tankmapcolors.json", "cacheTankmapColors"), tankmapFromCache))
+	frontend.LoadNotification(cfg.GetDString("notification.html", "notification"))
 
 	var err error
 

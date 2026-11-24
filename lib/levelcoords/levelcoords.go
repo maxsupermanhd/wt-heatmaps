@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 type LevelCoords struct {
@@ -45,11 +46,12 @@ func (c LevelCoords) TankMapAreaToWorld(box [4]float64) (x0, z0, x1, z1 float64)
 }
 
 var (
+	httpClient       = &http.Client{Timeout: 30 * time.Second}
 	cachedCoordsLock sync.Mutex
 	cachedCoords     = map[string]LevelCoords{}
 )
 
-func GetLevelCoordsCached(cacheFile, level string) (ret LevelCoords, err error) {
+func GetLevelCoordsCached(cacheFile, fetchURLPrefix, level string) (ret LevelCoords, err error) {
 	cachedCoordsLock.Lock()
 	ret, ok := cachedCoords[level]
 	cachedCoordsLock.Unlock()
@@ -77,16 +79,16 @@ func GetLevelCoordsCached(cacheFile, level string) (ret LevelCoords, err error) 
 		}
 	}
 
-	fetchUrl := "https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine/refs/heads/master/aces.vromfs.bin_u/" + strings.TrimSuffix(level, ".bin") + ".blkx"
-	resp, err := http.Get(fetchUrl)
+	fetchUrl := fetchURLPrefix + strings.TrimSuffix(level, ".bin") + ".blkx"
+	resp, err := httpClient.Get(fetchUrl)
 	if err != nil {
 		return ret, err
 	}
+	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
 		return ret, fmt.Errorf("request to %q returned %d", fetchUrl, resp.StatusCode)
 	}
 	err = json.NewDecoder(resp.Body).Decode(&ret)
-	resp.Body.Close()
 	if err != nil {
 		return
 	}

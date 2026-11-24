@@ -31,7 +31,10 @@ func (s *KillsStorage) StoreKills(toinsert []Kill) error {
 			k.KillerID, k.KillerTeam, k.KillerVehicle, k.KillerPosX, k.KillerPosZ, k.Weapon,
 			k.VictimID, k.VictimTeam, k.VictimVehicle, k.VictimPosX, k.VictimPosZ)
 		if err != nil {
-			os.WriteFile("err.spew", []byte(spew.Sdump(toinsert)), 0644)
+			errDump := os.WriteFile("err.spew", []byte(spew.Sdump(toinsert)), 0644)
+			if errDump != nil {
+				return errors.Join(fmt.Errorf("kills insert: %w", err), fmt.Errorf("write err.spew: %w", errDump))
+			}
 			return fmt.Errorf("kills insert: %w", err)
 		}
 	}
@@ -57,6 +60,9 @@ func IngestCarveToKills(carve *ingestprotogen.Replay) (ret []Kill, err error) {
 		carve.SpawnSide[0] == carve.SpawnSide[1] ||
 		carve.SpawnSide[0] > 2 || carve.SpawnSide[1] > 2 {
 		return nil, fmt.Errorf("SpawnSize looking funny: %v", carve.SpawnSide)
+	}
+	if carve.PosQuant == 0 {
+		return nil, errors.New("carve.PosQuant is zero")
 	}
 	sessionID, err := strconv.ParseUint(carve.Light.Id, 10, 64)
 	if err != nil {

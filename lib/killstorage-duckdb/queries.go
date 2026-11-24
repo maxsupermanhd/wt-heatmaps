@@ -361,8 +361,9 @@ func (s *KillsStorage) GetAreaArrows(ctx context.Context, conds QueryConditions)
 		return nil, nil
 	}
 
+	// the walk starts at the point with the most kills
 	sort.Slice(areaHeat, func(i, j int) bool {
-		return areaHeat[i].Kills < areaHeat[j].Kills
+		return areaHeat[i].Kills > areaHeat[j].Kills
 	})
 	areaPoints := make([]image.Point, len(areaHeat))
 	for i := range areaHeat {
@@ -417,7 +418,7 @@ type PosStat struct {
 
 type AngleCountTally struct {
 	Angle uint16
-	Count uint16
+	Count uint64
 }
 
 type AngleCountTallySlice []AngleCountTally
@@ -470,10 +471,11 @@ select round(degrees(
 		ST_Azimuth(
 		ST_Point(round(killer_posx), round(killer_posz)),
 		ST_Point(round(victim_posx), round(victim_posz)))
-	)), count(*)
+	)) as angle, count(*)
 from kills
 ` + conds.WhereCase() + qKillerCond + `
 group by 1
+having angle is not null
 order by 2 desc`
 	args := conds.Args()
 	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
@@ -494,10 +496,11 @@ select round(degrees(
 		ST_Azimuth(
 		ST_Point(round(victim_posx), round(victim_posz)),
 		ST_Point(round(killer_posx), round(killer_posz)))
-	)), count(*)
+	)) as angle, count(*)
 from kills
 ` + conds.WhereCase() + qVictimCond + `
 group by 1
+having angle is not null
 order by 2 desc`
 	// log.Info().Msg(q + "\n\n" + spew.Sdump(args))
 	rows, err = s.db.QueryContext(ctx, q, args...)
@@ -515,30 +518,33 @@ order by 2 desc`
 }
 
 func walkPoints(group []image.Point, start image.Point, iters int) []image.Point {
+	inGroup := make(map[image.Point]bool, len(group))
+	for _, v := range group {
+		inGroup[v] = true
+	}
 	targetGroup := []image.Point{}
+	visited := map[image.Point]bool{start: true}
 	toVisit := []image.Point{start}
 	next := []image.Point{}
 	for len(toVisit) > 0 && iters > 0 {
 		iters--
 		for _, v := range toVisit {
-			if !slices.Contains(group, v) {
+			if !inGroup[v] {
 				continue
 			}
-			if !slices.Contains(targetGroup, v) {
-				targetGroup = append(targetGroup, v)
-			}
+			targetGroup = append(targetGroup, v)
 			for _, v2 := range []image.Point{
-				image.Point{X: v.X - 1, Y: v.Y},
-				image.Point{X: v.X + 1, Y: v.Y},
-				image.Point{X: v.X, Y: v.Y - 1},
-				image.Point{X: v.X, Y: v.Y + 1}} {
-				if !slices.Contains(targetGroup, v2) {
+				{X: v.X - 1, Y: v.Y},
+				{X: v.X + 1, Y: v.Y},
+				{X: v.X, Y: v.Y - 1},
+				{X: v.X, Y: v.Y + 1}} {
+				if !visited[v2] {
+					visited[v2] = true
 					next = append(next, v2)
 				}
 			}
 		}
-		toVisit = toVisit[:0]
-		next, toVisit = toVisit, next
+		toVisit, next = next, toVisit[:0]
 	}
 	return targetGroup
 }

@@ -31,21 +31,20 @@ func (m *LockingMap[T]) AccessExclusive(f func(map[string]T) (map[string]T, erro
 			m.lock.Lock()
 			continue
 		}
-		if m.lockedExclusive == 1 {
-			m.lockedExclusive = 2
-			if m.notify != nil {
-				close(m.notify)
-			}
-			m.notify = make(chan struct{})
-			m.lock.Unlock()
-			break
+		m.lockedExclusive = 2
+		if m.notify != nil {
+			close(m.notify)
 		}
+		m.notify = make(chan struct{})
+		break
 	}
+	cached := m.cached
+	m.lock.Unlock()
 
-	var err error
-	m.cached, err = f(m.cached)
+	cached, err := f(cached)
 
 	m.lock.Lock()
+	m.cached = cached
 	m.lockedExclusive = 0
 	if m.notify != nil {
 		close(m.notify)
@@ -57,15 +56,13 @@ func (m *LockingMap[T]) AccessExclusive(f func(map[string]T) (map[string]T, erro
 
 func (m *LockingMap[T]) Access(k string, f func(T) (T, error)) error {
 	m.lock.Lock()
-	if m.cached == nil {
-		m.cached = map[string]T{}
-	}
 	for {
 		if m.lockedExclusive > 0 {
 			wc := m.notify
 			m.lock.Unlock()
 			<-wc
 			m.lock.Lock()
+			continue
 		}
 		if slices.Contains(m.locked, k) {
 			wc := m.notify
@@ -78,15 +75,21 @@ func (m *LockingMap[T]) Access(k string, f func(T) (T, error)) error {
 				close(m.notify)
 			}
 			m.notify = make(chan struct{})
-			m.lock.Unlock()
 			break
 		}
 	}
+	if m.cached == nil {
+		m.cached = map[string]T{}
+	}
+	v := m.cached[k]
+	m.lock.Unlock()
 
-	var err error
-	m.cached[k], err = f(m.cached[k])
+	v, err := f(v)
 
 	m.lock.Lock()
+	if err == nil {
+		m.cached[k] = v
+	}
 	m.locked = slices.DeleteFunc(m.locked, func(e string) bool { return e == k })
 	if m.notify != nil {
 		close(m.notify)

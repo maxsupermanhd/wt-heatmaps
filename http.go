@@ -42,10 +42,16 @@ func httpLog(f func(w http.ResponseWriter, r *http.Request)) func(w http.Respons
 }
 
 func httpRoutine(exitChan <-chan struct{}) {
-	listenAddr := cfg.GetDString("0.0.0.0:40124", "http", "listenAddr")
+	httpCfg := cfg.LinkSubTree("http")
+	listenAddr := httpCfg.GetDString("0.0.0.0:40124", "listenAddr")
+	// a heat render on a cache miss can take a long time, so the write
+	// timeout is long
 	serv := http.Server{
-		Addr:    listenAddr,
-		Handler: makeHTTPServeMux(),
+		Addr:              listenAddr,
+		Handler:           makeHTTPServeMux(),
+		ReadHeaderTimeout: time.Duration(httpCfg.GetDInt(10, "readHeaderTimeoutSeconds")) * time.Second,
+		ReadTimeout:       time.Duration(httpCfg.GetDInt(30, "readTimeoutSeconds")) * time.Second,
+		WriteTimeout:      time.Duration(httpCfg.GetDInt(300, "writeTimeoutSeconds")) * time.Second,
 	}
 
 	wg := &sync.WaitGroup{}

@@ -14,9 +14,7 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-var (
-	levelByColorSorter = imagecolorsort.NewImageColorSort(tankmapFromCache)
-)
+var levelByColorSorter *imagecolorsort.ImageColorSort[string]
 
 func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
 	levelAmounts, err := cachedKSAmountsByLevel.Get(ctx)
@@ -27,9 +25,10 @@ func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
 	for i, v := range levelAmounts {
 		levelNames[i] = v.LevelName
 	}
+	// a level with no sort value stays in the list
 	err = levelByColorSorter.Sort(levelNames)
 	if err != nil {
-		return nil, err
+		log.Err(err).Msg("sort levels by tankmap color")
 	}
 	levels := make([]frontend.LevelStat, 0, len(levelAmounts))
 	for _, levelName := range levelNames {
@@ -45,7 +44,9 @@ func getSortedLevelStats(ctx context.Context) ([]frontend.LevelStat, error) {
 }
 
 func getLevelOffsets(level string) (levelcoords.LevelCoords, error) {
-	return levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"), level)
+	return levelcoords.GetLevelCoordsCached(cfg.GetDString("cache/offsets.json", "cacheOffsets"),
+		cfg.GetDString("https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine/refs/heads/master/aces.vromfs.bin_u/", "urls", "levelCoordsPrefix"),
+		level)
 }
 
 func levelToLocalized(n string) string {
@@ -69,12 +70,13 @@ var (
 )
 
 func initLevelNames() {
-	lnBytes, err := os.ReadFile("levelnames.json")
+	levelNamesPath := cfg.GetDString("levelnames.json", "levelNames")
+	lnBytes, err := os.ReadFile(levelNamesPath)
 	if err != nil {
-		log.Err(err).Msg("reading levelnames.json")
+		log.Err(err).Str("path", levelNamesPath).Msg("reading level names")
 	}
 	err = json.Unmarshal(lnBytes, &levelNames)
 	if err != nil {
-		log.Err(err).Msg("parsing levelnames.json")
+		log.Err(err).Str("path", levelNamesPath).Msg("parsing level names")
 	}
 }

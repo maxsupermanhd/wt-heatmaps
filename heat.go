@@ -36,50 +36,48 @@ func serveHeat(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var out []byte
+	var tally []killstorage.KillTally
 
 	perf := time.Now()
 	if isDefaultQuery(q) {
 		err = cachedHeat.Access(level, func(a *cachedHeatAggregate) (*cachedHeatAggregate, error) {
 			if a == nil {
 				perf := time.Now()
+				var err error
 				a, err = cachedHeatInitAggregate(r.Context(), level)
 				log.Info().Msgf("heat perf cache miss took %s", time.Since(perf).String())
+				if err != nil {
+					return nil, err
+				}
 			} else {
 				log.Info().Msg("heat perf cache hit")
 			}
-			if err != nil {
-				return a, err
+			// a copy, as the render runs after the level lock is released
+			for v := range a.Loop() {
+				tally = append(tally, *v)
 			}
-			out = renderTally(levelOffsets, a.Loop(), q)
 			return a, nil
 		})
 	} else {
 		// log.Info().Msg(kq.Dump())
-		a, err := ks.GetKillCountsByCoord(r.Context(), kq)
-		if err != nil {
-			log.Err(err).Msg("get kills")
-			w.WriteHeader(500)
-			w.Write([]byte(err.Error()))
-			return
-		}
-		out = renderTally(levelOffsets, func(yield func(*killstorage.KillTally) bool) {
-			for i := range a {
-				if !yield(&a[i]) {
-					return
-				}
-			}
-		}, q)
+		tally, err = ks.GetKillCountsByCoord(r.Context(), kq)
 	}
-	log.Info().Msgf("heat perf total %s", time.Since(perf).String())
 	if err != nil {
-		log.Err(err).Msg("get cached heat")
+		log.Err(err).Msg("get kills")
 		w.WriteHeader(500)
 		if _, err := w.Write([]byte(err.Error())); err != nil {
 			log.Err(err).Msg("write heat response")
 		}
 		return
 	}
+	out := renderTally(levelOffsets, func(yield func(*killstorage.KillTally) bool) {
+		for i := range tally {
+			if !yield(&tally[i]) {
+				return
+			}
+		}
+	}, q)
+	log.Info().Msgf("heat perf total %s", time.Since(perf).String())
 
 	w.Write(out)
 }

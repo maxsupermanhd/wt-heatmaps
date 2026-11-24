@@ -29,7 +29,7 @@ func frontendVehicle(id string, v *wt.WpcostVehicle) frontend.Vehicle {
 }
 
 func wpcostLoad() error {
-	cacheFilePath := "cache/wpcost.json"
+	cacheFilePath := cfg.GetDString("cache/wpcost.json", "cacheWpcost")
 	f, err := os.Open(cacheFilePath)
 	if err == nil {
 		tmp, err := wt.NewVehicleEconomyCatalog(f)
@@ -40,11 +40,11 @@ func wpcostLoad() error {
 		vehicleEconomyCatalog = *tmp
 		return nil
 	}
-	err = os.MkdirAll(filepath.Dir(cacheFilePath), 0766)
+	err = os.MkdirAll(filepath.Dir(cacheFilePath), 0755)
 	if err != nil {
 		return err
 	}
-	rsp, err := http.Get("https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine/refs/heads/master/char.vromfs.bin_u/config/wpcost.blkx")
+	rsp, err := http.Get(cfg.GetDString("https://raw.githubusercontent.com/gszabi99/War-Thunder-Datamine/refs/heads/master/char.vromfs.bin_u/config/wpcost.blkx", "urls", "wpcost"))
 	if err != nil {
 		return err
 	}

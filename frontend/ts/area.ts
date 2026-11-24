@@ -92,11 +92,17 @@ selectBtn.addEventListener("click", () => {
 htmx.config.defaultTimeout = 0;
 
 // the responses go in by hand, as htmx would parse the SVG lines as HTML.
-// A request that a newer one or Clear area aborted gets no event.
+// A request that a newer one or Clear area aborted gets no event. htmx sends
+// htmx:after:request for an error status too, and preventDefault stops its
+// htmx:response:error, so the status is checked here.
 htmx.on(areaResults, "htmx:after:request", (e) => {
 	e.preventDefault();
-	areaResults.innerHTML = e.detail.ctx.text!;
 	setLoading("area", false);
+	if (e.detail.ctx.response!.status >= 400) {
+		areaResults.textContent = "Failed";
+		return;
+	}
+	areaResults.innerHTML = e.detail.ctx.text!;
 	if (panelToggle.checkVisibility() && !panel.matches(":popover-open")) {
 		panel.showPopover();
 	}
@@ -105,13 +111,21 @@ htmx.on(areaResults, "htmx:error", () => {
 	areaResults.textContent = "Failed";
 	setLoading("area", false);
 });
+// the lines get no error text, as the text is not SVG
 htmx.on(areaLines, "htmx:after:request", (e) => {
 	e.preventDefault();
+	setLoading("arrows", false);
+	if (e.detail.ctx.response!.status >= 400) {
+		areaLines.innerHTML = "";
+		return;
+	}
 	// FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG FUCK SVG
 	areaLines.innerHTML = e.detail.ctx.text!;
+});
+htmx.on(areaLines, "htmx:error", () => {
+	areaLines.innerHTML = "";
 	setLoading("arrows", false);
 });
-htmx.on(areaLines, "htmx:error", () => setLoading("arrows", false));
 
 export function clearArea() {
 	htmx.trigger(areaResults, "htmx:abort");

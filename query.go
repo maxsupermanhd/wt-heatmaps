@@ -67,7 +67,8 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 	killerVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "killerBattleRatingMin"), urlValueInt(q, "killerBattleRatingMax"))
 	if val := q.Get("killerVehicleClass"); val != "" {
 		log.Info().Str("killerVehicleClass", val).Msg("killerVehicleClass")
-		if len(killerVehicles) == 0 {
+		if killerVehicles == nil {
+			killerVehicles = []string{}
 			for k, v := range vehicleEconomyCatalog.Vehicles {
 				if v.UnitClass == val {
 					killerVehicles = append(killerVehicles, k)
@@ -84,7 +85,8 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 		}
 	}
 	if val := q.Get("killerVehicleCountry"); val != "" {
-		if len(killerVehicles) == 0 {
+		if killerVehicles == nil {
+			killerVehicles = []string{}
 			for k, v := range vehicleEconomyCatalog.Vehicles {
 				if v.Country == val {
 					killerVehicles = append(killerVehicles, k)
@@ -100,7 +102,10 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 			killerVehicles = filtered
 		}
 	}
-	if len(killerVehicles) > 0 {
+	// nil means no vehicle filter, empty means a filter that matches no vehicle
+	if killerVehicles != nil && len(killerVehicles) == 0 {
+		kq.QueryWithArbitrary("killer_vehicle", "false")
+	} else if killerVehicles != nil {
 		for i := range killerVehicles {
 			killerVehicles[i] = "tankmodels/" + killerVehicles[i]
 		}
@@ -108,7 +113,8 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 	}
 	victimVehicles := vehicleEconomyCatalog.GetAllInRange(urlValueInt(q, "victimBattleRatingMin"), urlValueInt(q, "victimBattleRatingMax"))
 	if val := q.Get("victimVehicleClass"); val != "" {
-		if len(victimVehicles) == 0 {
+		if victimVehicles == nil {
+			victimVehicles = []string{}
 			for k, v := range vehicleEconomyCatalog.Vehicles {
 				if v.UnitClass == val {
 					victimVehicles = append(victimVehicles, k)
@@ -125,7 +131,8 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 		}
 	}
 	if val := q.Get("victimVehicleCountry"); val != "" {
-		if len(victimVehicles) == 0 {
+		if victimVehicles == nil {
+			victimVehicles = []string{}
 			for k, v := range vehicleEconomyCatalog.Vehicles {
 				if v.Country == val {
 					victimVehicles = append(victimVehicles, k)
@@ -141,7 +148,10 @@ func buildKillQuery(q url.Values) killstorage.QueryConditions {
 			victimVehicles = filtered
 		}
 	}
-	if len(victimVehicles) > 0 {
+	// nil means no vehicle filter, empty means a filter that matches no vehicle
+	if victimVehicles != nil && len(victimVehicles) == 0 {
+		kq.QueryWithArbitrary("victim_vehicle", "false")
+	} else if victimVehicles != nil {
 		for i := range victimVehicles {
 			victimVehicles[i] = "tankmodels/" + victimVehicles[i]
 		}

@@ -51,10 +51,10 @@ func makeHTTPServeMux() http.HandlerFunc {
 	mux.HandleFunc("GET /debug/duckdbmemory", httpLog(serveDebugDuckdbMemory))
 	mux.HandleFunc("GET /debug/wpcost", httpLog(serveDebugWpcost))
 
-	mux.HandleFunc("GET /missions...", httpLog(servePermaRedirect("/")))
-	mux.HandleFunc("GET /clans...", httpLog(servePermaRedirect("/")))
-	mux.HandleFunc("GET /players...", httpLog(servePermaRedirect("/")))
-	mux.HandleFunc("GET /sessions...", httpLog(servePermaRedirect("/")))
+	for _, oldPage := range []string{"missions", "clans", "players", "sessions"} {
+		mux.HandleFunc("GET /"+oldPage, httpLog(servePermaRedirect("/")))
+		mux.HandleFunc("GET /"+oldPage+"/", httpLog(servePermaRedirect("/")))
+	}
 
 	return mux.ServeHTTP
 }
@@ -149,9 +149,8 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 
 	levelOffsets, err := getLevelOffsets(level)
 	if err != nil {
-		log.Err(err).Msg("get level offsets")
+		log.Err(err).Str("level", level).Msg("get level offsets for arrows")
 		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
 		return
 	}
 	areaW := float32(math.Abs(float64(levelOffsets.TankMap0[0] - levelOffsets.TankMap1[0])))
@@ -159,7 +158,7 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 	areaOffsetX := levelOffsets.TankMap0[0]
 	areaOffsetZ := levelOffsets.TankMap0[1]
 
-	const linesOpen = `<g id="mapviewLines" stroke="#f11a" width="100%" height="100%" stroke-width="0.3" stroke-linecap="round">`
+	const linesOpen = `<g stroke="#f11a" width="100%" height="100%" stroke-width="0.3" stroke-linecap="round">`
 	// a level with no tank map area gets no lines, as the scaling below would
 	// divide by zero
 	if areaW == 0 || areaH == 0 {
@@ -173,9 +172,8 @@ func serveAreaArrows(w http.ResponseWriter, r *http.Request) {
 
 	tally, err := ks.GetAreaArrows(r.Context(), kq)
 	if err != nil {
-		log.Err(err).Msg("get kills")
+		log.Err(err).Str("level", level).Msg("get area arrows")
 		w.WriteHeader(500)
-		w.Write([]byte(err.Error()))
 		return
 	}
 
