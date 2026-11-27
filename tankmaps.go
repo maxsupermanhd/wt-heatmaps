@@ -84,6 +84,7 @@ func serveCachedMinimaps(w http.ResponseWriter, r *http.Request) {
 		cachedSmall, ok := cachedSmallTankmaps[k]
 		cachedSmallTankmapsLock.Unlock()
 		if ok {
+			w.Header().Add("Cache-Control", "public, max-age=1814400")
 			w.WriteHeader(http.StatusOK)
 			w.Write(cachedSmall)
 			return
